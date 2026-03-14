@@ -18,7 +18,6 @@ import {
   ChevronDown,
   ChevronUp,
   Pencil,
-  Link,
   Save,
   X,
   Sparkles,
@@ -46,9 +45,7 @@ interface OutputCardProps {
   content: string;
   index: number;
   isLoading?: boolean;
-  onChain?: (content: string) => void;
   onCalibrate?: (original: string, edited: string) => void;
-  showChain?: boolean;
 }
 
 export function OutputCard({
@@ -59,9 +56,7 @@ export function OutputCard({
   content,
   index,
   isLoading,
-  onChain,
   onCalibrate,
-  showChain = false,
 }: OutputCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -117,12 +112,6 @@ export function OutputCard({
     e.stopPropagation();
     setEditing(false);
     setEditContent(content);
-  };
-
-  const handleChain = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const textToChain = editing ? editContent : displayContent;
-    onChain?.(textToChain);
   };
 
   const handleTweak = async () => {
@@ -218,15 +207,6 @@ export function OutputCard({
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                {showChain && onChain && (
-                  <button
-                    onClick={handleChain}
-                    className="p-2 rounded-lg bg-dark-800 text-dark-500 hover:text-crisp-400 hover:bg-crisp-500/10 transition-all opacity-0 group-hover:opacity-100"
-                    title="Chain — recast this output"
-                  >
-                    <Link className="w-3.5 h-3.5" />
-                  </button>
-                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

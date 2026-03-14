@@ -235,21 +235,6 @@ export default function AppPage() {
     [user, limits, enabledOutputTypes, customOutputTypes, voiceProfiles, activeVoiceProfileId, chainSource, audiences, activeAudienceId, toneFormality]
   );
 
-  const handleChain = useCallback(
-    (content: string) => {
-      if (!limits.hasChain) {
-        setUpgradeReason("Chain feature is available on Pro and above.");
-        setShowUpgrade(true);
-        return;
-      }
-      setChainSource(activeSessionId);
-      // The user can now paste the content into the paste zone or we auto-trigger
-      // For now, we'll auto-submit the chain
-      handleSubmit(content);
-    },
-    [limits, activeSessionId, handleSubmit]
-  );
-
   const handleCalibrate = useCallback(
     async (original: string, edited: string) => {
       if (!limits.hasCalibration) return;
@@ -470,9 +455,7 @@ export default function AppPage() {
                           icon={typeInfo?.icon || "briefcase"}
                           content={output.content}
                           index={i}
-                          onChain={handleChain}
                           onCalibrate={handleCalibrate}
-                          showChain={limits.hasChain}
                         />
                       );
                     })}
