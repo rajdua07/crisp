@@ -11,6 +11,8 @@ import {
   Presentation,
   FileText,
   Share2,
+  Smartphone,
+  Mic,
   Copy,
   Check,
   ChevronDown,
@@ -30,6 +32,8 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   presentation: Presentation,
   "file-text": FileText,
   "share-2": Share2,
+  smartphone: Smartphone,
+  mic: Mic,
 };
 
 interface OutputCardProps {

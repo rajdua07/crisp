@@ -67,4 +67,18 @@ export const ALL_OUTPUT_TYPES: OutputType[] = [
     description: "LinkedIn/Twitter-ready",
     instructions: `LinkedIn-optimized. Hook in the first line (pattern interrupt or bold claim). Short paragraphs (1-2 sentences). Personal angle where possible. End with engagement prompt (question or CTA). 150-300 words for LinkedIn, then a "---" separator, then a <280 chars Twitter variant.`,
   },
+  {
+    slug: "text_message",
+    name: "Text Message",
+    icon: "smartphone",
+    description: "Short iMessage/SMS-ready",
+    instructions: `Write as a text message - the way a real person texts. Max 3 messages (separated by line breaks). Keep each under 160 chars. No greetings or signoffs. Casual, direct, human. Use contractions. Can break grammar rules if it sounds more natural. No emoji unless the tone calls for it.`,
+  },
+  {
+    slug: "voice_note_script",
+    name: "Voice Note Script",
+    icon: "mic",
+    description: "Speakable voice memo",
+    instructions: `Write exactly how someone would say this out loud in a voice note. Conversational, not written. Use filler phrases sparingly ("so basically", "the thing is") to sound natural. No bullet points or formatting - just flowing speech. Keep under 45 seconds when read aloud (roughly 100-120 words). Start mid-thought like a real voice note ("Hey so I just looked at this and..."). End with a clear ask or next step.`,
+  },
 ];
