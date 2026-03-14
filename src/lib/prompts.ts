@@ -35,22 +35,85 @@ export function buildRecastPrompt(
   outputTypeName: string,
   outputTypeInstructions: string,
   inputContent: string,
-  thoughtDepthContext?: string
+  thoughtDepthContext?: string,
+  voiceProfileJson?: string
 ): string {
   return `You are Crisp, a content transformer. Take AI-generated content and recast it into a ${outputTypeName}.
 
+${voiceProfileJson ? `=== VOICE PROFILE ===\n${voiceProfileJson}\n` : ""}
 === OUTPUT TYPE: ${outputTypeName} ===
 ${outputTypeInstructions}
 
 ${thoughtDepthContext ? `=== THOUGHT DEPTH CONTEXT ===\n${thoughtDepthContext}\n` : ""}
 === RULES ===
-- Never add information not present in the original
+${voiceProfileJson ? "- Match the voice profile EXACTLY — mimic sentence length, vocabulary, structure\n" : ""}- Never add information not present in the original
 - Be concise — the user wants a shorter, more targeted version
 - Do not use generic AI language like "leverage", "synergy", "circle back", "deep dive"
-- Write in a natural, human voice
+${voiceProfileJson ? "- Use the user's preferred vocabulary, not generic AI language\n- Match their punctuation style, greeting style, and structural preferences" : "- Write in a natural, human voice"}
 
 === INPUT CONTENT ===
 ${inputContent}
 
 Generate the ${outputTypeName} now. Return only the output, no meta-commentary.`;
 }
+
+export const VOICE_ANALYSIS_PROMPT = `Analyze these writing samples and extract detailed voice patterns. Be precise and specific.
+
+Return JSON only in this exact structure:
+{
+  "sentence_patterns": {
+    "avg_length": <number of words>,
+    "max_length": <number of words>,
+    "prefers_fragments": <boolean>,
+    "opener_style": "<how they start messages/paragraphs>",
+    "closer_style": "<how they end messages/paragraphs>"
+  },
+  "vocabulary": {
+    "preferred_words": ["<5-10 signature words/phrases they use>"],
+    "avoided_words": ["<words they never use>"],
+    "formality_level": <0-1 where 0 is casual, 1 is formal>,
+    "contractions": <boolean>
+  },
+  "structure": {
+    "paragraph_length": "<e.g. 1-2 sentences>",
+    "uses_bullets": <boolean>,
+    "uses_headers": "<never/rarely/often>",
+    "uses_bold": "<never/for emphasis only/frequently>",
+    "punctuation_style": "<e.g. dashes over semicolons>"
+  },
+  "tone": {
+    "warmth": <0-1>,
+    "directness": <0-1>,
+    "humor": <0-1>,
+    "formality_range": [<min 0-1>, <max 0-1>]
+  },
+  "email_patterns": {
+    "greeting": "<their greeting style>",
+    "signoff": "<their signoff style>",
+    "ps_usage": <boolean>
+  },
+  "raw_analysis": "<2-3 sentence natural language summary of their voice>"
+}`;
+
+export const CALIBRATION_PROMPT = `Analyze the differences between the original AI-generated content and the user's edited version. Extract what the edits reveal about the user's voice preferences.
+
+=== ORIGINAL ===
+{original}
+
+=== USER'S EDITED VERSION ===
+{edited}
+
+Focus on:
+- What did they change and why?
+- What vocabulary did they prefer?
+- How did they adjust tone, formality, structure?
+- What patterns are consistent with their voice?
+
+Return JSON with incremental voice adjustments:
+{
+  "vocabulary_additions": ["words they introduced"],
+  "vocabulary_removals": ["words they removed"],
+  "tone_shift": { "warmth": <delta -1 to 1>, "directness": <delta>, "formality": <delta> },
+  "structural_preferences": ["observed patterns"],
+  "summary": "Brief description of what their edits reveal about their voice"
+}`;

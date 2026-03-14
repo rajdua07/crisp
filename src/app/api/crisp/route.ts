@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { DEFAULT_OUTPUT_TYPES } from "@/lib/output-types";
+import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
 import { THOUGHT_DEPTH_PROMPT, buildRecastPrompt } from "@/lib/prompts";
 
 export const runtime = "nodejs";
@@ -31,50 +31,28 @@ async function scoreThoughtDepth(inputText: string) {
   }
 }
 
-async function generateOutput(
-  outputTypeSlug: string,
-  outputTypeName: string,
-  instructions: string,
-  inputText: string,
-  thoughtDepthContext?: string
-): Promise<string> {
-  const prompt = buildRecastPrompt(
-    outputTypeName,
-    instructions,
-    inputText,
-    thoughtDepthContext
-  );
-
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  return response.content[0].type === "text" ? response.content[0].text : "";
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
       input_text,
       output_types = ["exec_brief", "email_draft", "action_items", "slack_message"],
+      voice_profile,
+      custom_types,
     } = body;
 
     if (!input_text || typeof input_text !== "string") {
-      return new Response(JSON.stringify({ error: "input_text is required" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return Response.json({ error: "input_text is required" }, { status: 400 });
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
+      return Response.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
     }
+
+    const voiceJson = voice_profile ? JSON.stringify(voice_profile, null, 2) : undefined;
+
+    // Merge system types with any custom types from client
+    const allTypes = [...ALL_OUTPUT_TYPES, ...(custom_types || [])];
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -109,18 +87,26 @@ export async function POST(request: Request) {
             : undefined;
 
           // 2. Generate outputs concurrently
-          const selectedTypes = DEFAULT_OUTPUT_TYPES.filter((t) =>
+          const selectedTypes = allTypes.filter((t) =>
             output_types.includes(t.slug)
           );
 
           const outputPromises = selectedTypes.map(async (outputType) => {
-            const content = await generateOutput(
-              outputType.slug,
+            const prompt = buildRecastPrompt(
               outputType.name,
               outputType.instructions,
               input_text,
-              thoughtContext
+              thoughtContext,
+              voiceJson
             );
+
+            const response = await anthropic.messages.create({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1024,
+              messages: [{ role: "user", content: prompt }],
+            });
+
+            const content = response.content[0].type === "text" ? response.content[0].text : "";
             controller.enqueue(
               encoder.encode(
                 `event: output\ndata: ${JSON.stringify({
@@ -161,9 +147,6 @@ export async function POST(request: Request) {
       },
     });
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
