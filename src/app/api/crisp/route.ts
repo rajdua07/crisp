@@ -91,7 +91,24 @@ export async function POST(request: Request) {
                 .join(", ")}`
             : undefined;
 
-          // 2. Generate outputs concurrently
+          // 2. Generate summary + outputs concurrently
+          const summaryPromise = anthropic.messages.create({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 30,
+            messages: [{
+              role: "user",
+              content: `Summarize the theme of this text in 3-6 words. No quotes, no punctuation at the end. Examples: "Q3 revenue analysis", "Team offsite planning", "Product launch strategy"\n\nText:\n${input_text.slice(0, 500)}`,
+            }],
+          }).then((res) => {
+            const summary = res.content[0].type === "text" ? res.content[0].text.trim() : "";
+            controller.enqueue(
+              encoder.encode(
+                `event: summary\ndata: ${JSON.stringify({ summary })}\n\n`
+              )
+            );
+            return summary;
+          }).catch(() => null);
+
           const selectedTypes = allTypes.filter((t) =>
             output_types.includes(t.slug)
           );
@@ -125,7 +142,7 @@ export async function POST(request: Request) {
             );
           });
 
-          await Promise.all(outputPromises);
+          await Promise.all([summaryPromise, ...outputPromises]);
 
           controller.enqueue(
             encoder.encode(

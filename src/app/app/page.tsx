@@ -165,6 +165,7 @@ export default function AppPage() {
         let buffer = "";
         const collectedOutputs: OutputResult[] = [];
         let collectedDepth: ThoughtDepthScore | null = null;
+        let collectedSummary = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -188,6 +189,8 @@ export default function AppPage() {
                   collectedOutputs.push(data);
                   setOutputs((prev) => [...prev, data]);
                   setLoadingTypes((prev) => prev.filter((t) => t !== data.type));
+                } else if (eventType === "summary") {
+                  collectedSummary = data.summary;
                 } else if (eventType === "error") {
                   setError(data.error);
                 }
@@ -204,6 +207,7 @@ export default function AppPage() {
         const session: CrispSession = {
           id: sessionId,
           inputText,
+          summary: collectedSummary || undefined,
           thoughtDepthScore: collectedDepth as Record<string, unknown> | null,
           outputs: collectedOutputs.map((o) => ({
             id: uuidv4(),

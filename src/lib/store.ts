@@ -74,6 +74,7 @@ export interface VoiceProfileData {
 export interface CrispSession {
   id: string;
   inputText: string;
+  summary?: string;
   thoughtDepthScore: Record<string, unknown> | null;
   outputs: SessionOutput[];
   chainParentId?: string;

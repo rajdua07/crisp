@@ -82,7 +82,7 @@ export function Sidebar({
             <div className="flex items-center gap-2">
               <FileText className="w-3.5 h-3.5 flex-shrink-0 opacity-50" />
               <span className="truncate text-xs">
-                {truncate(session.inputText, 50)}
+                {session.summary || truncate(session.inputText, 50)}
               </span>
             </div>
           </button>
