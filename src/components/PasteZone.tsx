@@ -54,6 +54,7 @@ interface PasteZoneProps {
   isLoading: boolean;
   text: string;
   onTextChange: (text: string) => void;
+  compact?: boolean;
 }
 
 function getToneLabel(value: number): string {
@@ -64,7 +65,7 @@ function getToneLabel(value: number): string {
   return "Formal";
 }
 
-export function PasteZone({ onSubmit, isLoading, text, onTextChange }: PasteZoneProps) {
+export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = false }: PasteZoneProps) {
   const {
     audiences,
     activeAudienceId,
@@ -88,10 +89,15 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange }: PasteZone
 
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.max(200, textareaRef.current.scrollHeight)}px`;
+      if (compact) {
+        // In compact mode, don't auto-grow — keep fixed max height
+        textareaRef.current.style.height = "";
+      } else {
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = `${Math.max(200, textareaRef.current.scrollHeight)}px`;
+      }
     }
-  }, [text]);
+  }, [text, compact]);
 
   const handleSubmit = useCallback(() => {
     if (text.trim() && !isLoading) {
@@ -159,7 +165,9 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange }: PasteZone
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           placeholder="Paste any AI output here..."
-          className="w-full min-h-[200px] bg-transparent text-dark-100 placeholder-dark-500 p-6 pb-12 resize-none text-sm leading-relaxed focus:outline-none rounded-2xl"
+          className={`w-full bg-transparent text-dark-100 placeholder-dark-500 p-6 pb-12 resize-none text-sm leading-relaxed focus:outline-none rounded-2xl ${
+            compact ? "min-h-[100px] max-h-[150px] overflow-y-auto" : "min-h-[200px]"
+          }`}
           disabled={isLoading}
         />
         <div className="absolute bottom-3 left-6 right-6 flex items-center justify-between">

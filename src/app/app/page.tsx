@@ -435,7 +435,7 @@ export default function AppPage() {
                 >
                   {/* Left — Paste zone + Thought Depth */}
                   <div className="space-y-5">
-                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} />
+                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} compact />
                     {thoughtDepth && (
                       <ThoughtDepthIndicator
                         score={thoughtDepth}
