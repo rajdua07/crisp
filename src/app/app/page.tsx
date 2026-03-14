@@ -53,6 +53,8 @@ export default function AppPage() {
   const [upgradeReason, setUpgradeReason] = useState("");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [chainSource, setChainSource] = useState<string | null>(null);
+  const [isEnriching, setIsEnriching] = useState(false);
+  const [lastInputText, setLastInputText] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check for upgrade/session query params
@@ -123,6 +125,7 @@ export default function AppPage() {
       setThoughtDepth(null);
       setError(null);
       setChainSource(null);
+      setLastInputText(inputText);
 
       const activeSlugs = getActiveOutputSlugs();
       setLoadingTypes(activeSlugs);
@@ -267,6 +270,39 @@ export default function AppPage() {
     [limits]
   );
 
+  const handleEnrich = useCallback(async () => {
+    if (!lastInputText || !thoughtDepth) return;
+
+    setIsEnriching(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/crisp/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input_text: lastInputText,
+          thought_depth: thoughtDepth,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Enrichment failed");
+      }
+
+      const { enriched_text } = await res.json();
+      // Re-submit with enriched content
+      handleSubmit(enriched_text);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      }
+    } finally {
+      setIsEnriching(false);
+    }
+  }, [lastInputText, thoughtDepth, handleSubmit]);
+
   const handleNewCrisp = () => {
     setOutputs([]);
     setThoughtDepth(null);
@@ -396,7 +432,11 @@ export default function AppPage() {
                   <div className="space-y-5">
                     <PasteZone onSubmit={handleSubmit} isLoading={isLoading} />
                     {thoughtDepth && (
-                      <ThoughtDepthIndicator score={thoughtDepth} />
+                      <ThoughtDepthIndicator
+                        score={thoughtDepth}
+                        onEnrich={handleEnrich}
+                        isEnriching={isEnriching}
+                      />
                     )}
                   </div>
 

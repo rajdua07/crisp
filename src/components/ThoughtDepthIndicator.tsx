@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Wand2, Loader2 } from "lucide-react";
 
 export interface ThoughtDepthScore {
   specificity: { score: number; flag?: string };
@@ -52,7 +52,13 @@ function getScoreLabel(total: number): string {
   return "Needs work";
 }
 
-export function ThoughtDepthIndicator({ score }: { score: ThoughtDepthScore }) {
+interface ThoughtDepthProps {
+  score: ThoughtDepthScore;
+  onEnrich?: () => void;
+  isEnriching?: boolean;
+}
+
+export function ThoughtDepthIndicator({ score, onEnrich, isEnriching }: ThoughtDepthProps) {
   const [expanded, setExpanded] = useState(false);
 
   const dimensions = ["specificity", "evidence", "original_thinking", "decision_clarity", "alternatives"] as const;
@@ -154,6 +160,34 @@ export function ThoughtDepthIndicator({ score }: { score: ThoughtDepthScore }) {
                   </div>
                 );
               })}
+
+              {score.total < 70 && onEnrich && (
+                <motion.button
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEnrich();
+                  }}
+                  disabled={isEnriching}
+                  className="w-full mt-3 py-2.5 px-4 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-all bg-amber-400/10 text-amber-400 border border-amber-400/20 hover:bg-amber-400/15 hover:border-amber-400/30 disabled:opacity-50"
+                >
+                  {isEnriching ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Enriching content...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-3.5 h-3.5" />
+                      Enrich - boost depth before recasting
+                    </>
+                  )}
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )}
