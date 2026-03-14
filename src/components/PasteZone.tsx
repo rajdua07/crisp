@@ -12,8 +12,33 @@ import {
   TrendingUp,
   Star,
   X,
+  Briefcase,
+  Mail,
+  CheckSquare,
+  MessageSquare,
+  GitBranch,
+  Presentation,
+  FileText,
+  Share2,
+  Smartphone,
+  Mic,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
+
+const OUTPUT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  briefcase: Briefcase,
+  mail: Mail,
+  "check-square": CheckSquare,
+  "message-square": MessageSquare,
+  "git-branch": GitBranch,
+  presentation: Presentation,
+  "file-text": FileText,
+  "share-2": Share2,
+  smartphone: Smartphone,
+  mic: Mic,
+  sparkles: Sparkles,
+};
 
 const AUDIENCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   crown: Crown,
@@ -44,6 +69,9 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
     setActiveAudienceId,
     toneFormality,
     setToneFormality,
+    enabledOutputTypes,
+    setEnabledOutputTypes,
+    customOutputTypes,
   } = useAppStore();
 
   const [text, setText] = useState("");
@@ -261,6 +289,66 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* Output type toggles */}
+      <div>
+        <div className="text-[10px] uppercase tracking-widest text-dark-500 font-medium mb-2">
+          Output types
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {ALL_OUTPUT_TYPES.map((type) => {
+            const Icon = OUTPUT_ICONS[type.icon] || Sparkles;
+            const isEnabled = enabledOutputTypes.includes(type.slug);
+            return (
+              <button
+                key={type.slug}
+                onClick={() => {
+                  if (isEnabled) {
+                    setEnabledOutputTypes(enabledOutputTypes.filter((s) => s !== type.slug));
+                  } else {
+                    setEnabledOutputTypes([...enabledOutputTypes, type.slug]);
+                  }
+                }}
+                title={type.description}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
+                  isEnabled
+                    ? "bg-crisp-500/10 text-crisp-400 border-crisp-500/20"
+                    : "bg-dark-900/30 text-dark-600 border-dark-800/50 hover:text-dark-400 hover:border-dark-700/50"
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                {type.name}
+              </button>
+            );
+          })}
+          {customOutputTypes.map((type) => {
+            const isEnabled = enabledOutputTypes.includes(type.slug);
+            return (
+              <button
+                key={type.slug}
+                onClick={() => {
+                  if (isEnabled) {
+                    setEnabledOutputTypes(enabledOutputTypes.filter((s) => s !== type.slug));
+                  } else {
+                    setEnabledOutputTypes([...enabledOutputTypes, type.slug]);
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
+                  isEnabled
+                    ? "bg-crisp-500/10 text-crisp-400 border-crisp-500/20"
+                    : "bg-dark-900/30 text-dark-600 border-dark-800/50 hover:text-dark-400 hover:border-dark-700/50"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                {type.name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-1.5 text-[10px] text-dark-600">
+          {enabledOutputTypes.length} selected
+        </div>
       </div>
 
       {/* Crisp It button */}
