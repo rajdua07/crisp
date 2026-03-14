@@ -1,6 +1,27 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+// ─── Audience ───
+export interface Audience {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  tonePreset: {
+    formality: number; // 0 = casual, 1 = formal
+    warmth: number;
+    detail: number; // 0 = concise, 1 = detailed
+  };
+}
+
+export const DEFAULT_AUDIENCES: Audience[] = [
+  { id: "ceo", name: "CEO / Board", description: "Formal, metrics-driven, concise", icon: "crown", tonePreset: { formality: 0.9, warmth: 0.3, detail: 0.3 } },
+  { id: "team", name: "Team", description: "Direct, casual, actionable", icon: "users", tonePreset: { formality: 0.3, warmth: 0.7, detail: 0.5 } },
+  { id: "client", name: "Client", description: "Professional, polished, clear", icon: "handshake", tonePreset: { formality: 0.7, warmth: 0.6, detail: 0.7 } },
+  { id: "family", name: "Family", description: "Warm, simple, personal", icon: "heart", tonePreset: { formality: 0.1, warmth: 0.9, detail: 0.3 } },
+  { id: "investor", name: "Investor", description: "Data-heavy, confident, strategic", icon: "trending-up", tonePreset: { formality: 0.8, warmth: 0.4, detail: 0.6 } },
+];
+
 // ─── Voice Profile ───
 export interface VoiceProfile {
   id: string;
@@ -56,6 +77,8 @@ export interface CrispSession {
   thoughtDepthScore: Record<string, unknown> | null;
   outputs: SessionOutput[];
   chainParentId?: string;
+  audienceId?: string;
+  toneFormality?: number;
   createdAt: string;
 }
 
@@ -107,6 +130,12 @@ interface AppState {
   setDefaultVoiceProfile: (id: string) => void;
   getDefaultVoiceProfile: () => VoiceProfile | undefined;
 
+  // Audiences
+  audiences: Audience[];
+  addAudience: (audience: Audience) => void;
+  updateAudience: (id: string, updates: Partial<Audience>) => void;
+  deleteAudience: (id: string) => void;
+
   // Sessions (history)
   sessions: CrispSession[];
   addSession: (session: CrispSession) => void;
@@ -119,9 +148,13 @@ interface AppState {
   deleteCustomOutputType: (id: string) => void;
   reorderCustomOutputTypes: (types: CustomOutputType[]) => void;
 
-  // Active voice profile for current session
+  // Active state
   activeVoiceProfileId: string | null;
   setActiveVoiceProfileId: (id: string | null) => void;
+  activeAudienceId: string | null;
+  setActiveAudienceId: (id: string | null) => void;
+  toneFormality: number;
+  setToneFormality: (value: number) => void;
 
   // Output type visibility/order preferences
   enabledOutputTypes: string[];
@@ -172,6 +205,21 @@ export const useAppStore = create<AppState>()(
       getDefaultVoiceProfile: () =>
         get().voiceProfiles.find((p) => p.isDefault),
 
+      // ─── Audiences ───
+      audiences: DEFAULT_AUDIENCES,
+      addAudience: (audience) =>
+        set((s) => ({ audiences: [...s.audiences, audience] })),
+      updateAudience: (id, updates) =>
+        set((s) => ({
+          audiences: s.audiences.map((a) =>
+            a.id === id ? { ...a, ...updates } : a
+          ),
+        })),
+      deleteAudience: (id) =>
+        set((s) => ({
+          audiences: s.audiences.filter((a) => a.id !== id),
+        })),
+
       // ─── Sessions ───
       sessions: [],
       addSession: (session) =>
@@ -198,6 +246,10 @@ export const useAppStore = create<AppState>()(
       // ─── Active state ───
       activeVoiceProfileId: null,
       setActiveVoiceProfileId: (id) => set({ activeVoiceProfileId: id }),
+      activeAudienceId: null,
+      setActiveAudienceId: (id) => set({ activeAudienceId: id }),
+      toneFormality: 0.5,
+      setToneFormality: (value) => set({ toneFormality: value }),
 
       enabledOutputTypes: [
         "exec_brief",
@@ -214,11 +266,11 @@ export const useAppStore = create<AppState>()(
 );
 
 // ─── Helpers ───
-export const PLAN_LIMITS: Record<Plan, { crispsPerMonth: number; maxVoiceProfiles: number; maxOutputTypes: number; hasChain: boolean; hasCustomTypes: boolean; hasCalibration: boolean }> = {
-  free: { crispsPerMonth: 10, maxVoiceProfiles: 1, maxOutputTypes: 3, hasChain: false, hasCustomTypes: false, hasCalibration: false },
-  pro: { crispsPerMonth: Infinity, maxVoiceProfiles: 3, maxOutputTypes: 8, hasChain: true, hasCustomTypes: true, hasCalibration: true },
-  team: { crispsPerMonth: Infinity, maxVoiceProfiles: 10, maxOutputTypes: 20, hasChain: true, hasCustomTypes: true, hasCalibration: true },
-  enterprise: { crispsPerMonth: Infinity, maxVoiceProfiles: Infinity, maxOutputTypes: Infinity, hasChain: true, hasCustomTypes: true, hasCalibration: true },
+export const PLAN_LIMITS: Record<Plan, { crispsPerMonth: number; maxVoiceProfiles: number; maxOutputTypes: number; hasChain: boolean; hasCustomTypes: boolean; hasCalibration: boolean; maxAudiences: number }> = {
+  free: { crispsPerMonth: 10, maxVoiceProfiles: 1, maxOutputTypes: 3, hasChain: false, hasCustomTypes: false, hasCalibration: false, maxAudiences: 3 },
+  pro: { crispsPerMonth: Infinity, maxVoiceProfiles: 3, maxOutputTypes: 8, hasChain: true, hasCustomTypes: true, hasCalibration: true, maxAudiences: Infinity },
+  team: { crispsPerMonth: Infinity, maxVoiceProfiles: 10, maxOutputTypes: 20, hasChain: true, hasCustomTypes: true, hasCalibration: true, maxAudiences: Infinity },
+  enterprise: { crispsPerMonth: Infinity, maxVoiceProfiles: Infinity, maxOutputTypes: Infinity, hasChain: true, hasCustomTypes: true, hasCalibration: true, maxAudiences: Infinity },
 };
 
 export const FREE_OUTPUT_SLUGS = ["email_draft", "action_items", "slack_message"];

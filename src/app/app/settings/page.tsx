@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { VoiceProfileEditor } from "@/components/VoiceProfileEditor";
 import { CustomOutputTypeManager } from "@/components/CustomOutputTypeManager";
+import { AudienceManager } from "@/components/AudienceManager";
 import { useAppStore, PLAN_LIMITS } from "@/lib/store";
 import {
   ArrowLeft,
@@ -13,9 +14,10 @@ import {
   User,
   CreditCard,
   Zap,
+  Target,
 } from "lucide-react";
 
-type Tab = "voice" | "outputs" | "account";
+type Tab = "voice" | "audiences" | "outputs" | "account";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("voice");
@@ -24,6 +26,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: "voice" as const, label: "Your Voice", icon: Volume2 },
+    { id: "audiences" as const, label: "Audiences", icon: Target },
     { id: "outputs" as const, label: "Output Types", icon: LayoutGrid },
     { id: "account" as const, label: "Account", icon: User },
   ];
@@ -107,6 +110,26 @@ export default function SettingsPage() {
                 </p>
               </div>
               <VoiceProfileEditor />
+            </motion.div>
+          )}
+
+          {activeTab === "audiences" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="max-w-2xl"
+            >
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-dark-100 mb-2">
+                  Audiences
+                </h2>
+                <p className="text-sm text-dark-400">
+                  Define who you communicate with. Crisp adjusts tone, formality,
+                  and detail level per audience - your operating system for every
+                  conversation.
+                </p>
+              </div>
+              <AudienceManager />
             </motion.div>
           )}
 

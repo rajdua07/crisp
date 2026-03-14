@@ -39,6 +39,8 @@ export async function POST(request: Request) {
       output_types = ["exec_brief", "email_draft", "action_items", "slack_message"],
       voice_profile,
       custom_types,
+      audience,
+      tone_formality,
     } = body;
 
     if (!input_text || typeof input_text !== "string") {
@@ -50,6 +52,9 @@ export async function POST(request: Request) {
     }
 
     const voiceJson = voice_profile ? JSON.stringify(voice_profile, null, 2) : undefined;
+    const audienceContext = audience
+      ? `Target audience: ${audience.name}\nDescription: ${audience.description}\nExpected tone: formality ${(audience.tonePreset?.formality * 100 || 50).toFixed(0)}%, warmth ${(audience.tonePreset?.warmth * 100 || 50).toFixed(0)}%`
+      : undefined;
 
     // Merge system types with any custom types from client
     const allTypes = [...ALL_OUTPUT_TYPES, ...(custom_types || [])];
@@ -69,7 +74,7 @@ export async function POST(request: Request) {
           }
 
           const thoughtContext = thoughtDepth
-            ? `Score: ${thoughtDepth.total}/25\nGaps: ${Object.entries(thoughtDepth)
+            ? `Score: ${thoughtDepth.total}/100\nGaps: ${Object.entries(thoughtDepth)
                 .filter(
                   ([key, val]) =>
                     key !== "total" &&
@@ -97,7 +102,9 @@ export async function POST(request: Request) {
               outputType.instructions,
               input_text,
               thoughtContext,
-              voiceJson
+              voiceJson,
+              audienceContext,
+              tone_formality
             );
 
             const response = await anthropic.messages.create({

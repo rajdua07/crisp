@@ -17,6 +17,8 @@ import {
   CrispSession,
 } from "@/lib/store";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
+import { AudienceSelector } from "@/components/AudienceSelector";
+import { ToneSlider } from "@/components/ToneSlider";
 import { Sparkles, Menu, AlertCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -36,6 +38,9 @@ export default function AppPage() {
     activeVoiceProfileId,
     enabledOutputTypes,
     customOutputTypes,
+    audiences,
+    activeAudienceId,
+    toneFormality,
   } = useAppStore();
 
   const limits = PLAN_LIMITS[user.plan];
@@ -125,6 +130,9 @@ export default function AppPage() {
       setLoadingTypes(activeSlugs);
 
       const voiceProfile = getActiveVoiceProfile();
+      const activeAudience = activeAudienceId
+        ? audiences.find((a) => a.id === activeAudienceId)
+        : null;
 
       try {
         const response = await fetch("/api/crisp", {
@@ -137,6 +145,8 @@ export default function AppPage() {
             custom_types: customOutputTypes.filter((t) =>
               activeSlugs.includes(t.slug)
             ),
+            audience: activeAudience || null,
+            tone_formality: toneFormality,
           }),
           signal: controller.signal,
         });
@@ -216,7 +226,7 @@ export default function AppPage() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, limits, enabledOutputTypes, customOutputTypes, voiceProfiles, activeVoiceProfileId, chainSource]
+    [user, limits, enabledOutputTypes, customOutputTypes, voiceProfiles, activeVoiceProfileId, chainSource, audiences, activeAudienceId, toneFormality]
   );
 
   const handleChain = useCallback(
@@ -318,6 +328,7 @@ export default function AppPage() {
                 Chaining from previous output
               </div>
             )}
+            <AudienceSelector />
           </div>
           <div className="flex items-center gap-3">
             {user.plan === "free" && (
@@ -362,6 +373,9 @@ export default function AppPage() {
                         Drop a ChatGPT dump, Claude response, or any AI-generated text.
                       </p>
                     </motion.div>
+                    <div className="mb-4">
+                      <ToneSlider />
+                    </div>
                     <PasteZone onSubmit={handleSubmit} isLoading={isLoading} />
 
                     {/* Quick stats */}
@@ -386,6 +400,7 @@ export default function AppPage() {
                 >
                   {/* Left — Paste zone + Thought Depth */}
                   <div className="space-y-5">
+                    <ToneSlider compact />
                     <PasteZone onSubmit={handleSubmit} isLoading={isLoading} />
                     {thoughtDepth && (
                       <ThoughtDepthIndicator score={thoughtDepth} />
