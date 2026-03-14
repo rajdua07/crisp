@@ -104,6 +104,15 @@ export interface CustomOutputType {
   sortOrder: number;
 }
 
+// ─── Integrations ───
+export interface Integrations {
+  slack?: { webhookUrl: string; channelName?: string };
+  notion?: { apiKey: string; pageId?: string };
+  asana?: { accessToken: string; projectId?: string };
+  monday?: { apiKey: string; boardId?: string };
+  google?: { accessToken?: string; refreshToken?: string; expiresAt?: number };
+}
+
 // ─── User / Billing ───
 export type Plan = "free" | "pro" | "team" | "enterprise";
 
@@ -162,6 +171,11 @@ interface AppState {
   setActiveAudienceId: (id: string | null) => void;
   toneFormality: number;
   setToneFormality: (value: number) => void;
+
+  // Integrations
+  integrations: Integrations;
+  setIntegration: <K extends keyof Integrations>(key: K, value: Integrations[K]) => void;
+  removeIntegration: (key: keyof Integrations) => void;
 
   // Output type visibility/order preferences
   enabledOutputTypes: string[];
@@ -279,6 +293,17 @@ export const useAppStore = create<AppState>()(
         })),
       reorderCustomOutputTypes: (types) =>
         set({ customOutputTypes: types }),
+
+      // ─── Integrations ───
+      integrations: {},
+      setIntegration: (key, value) =>
+        set((s) => ({ integrations: { ...s.integrations, [key]: value } })),
+      removeIntegration: (key) =>
+        set((s) => {
+          const next = { ...s.integrations };
+          delete next[key];
+          return { integrations: next };
+        }),
 
       // ─── Active state ───
       activeVoiceProfileId: null,

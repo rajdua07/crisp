@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { VoiceProfileEditor } from "@/components/VoiceProfileEditor";
 import { CustomOutputTypeManager } from "@/components/CustomOutputTypeManager";
 import { AudienceManager } from "@/components/AudienceManager";
+import { IntegrationsManager } from "@/components/IntegrationsManager";
 import { useAppStore, PLAN_LIMITS } from "@/lib/store";
 import {
   ArrowLeft,
@@ -15,9 +16,10 @@ import {
   CreditCard,
   Zap,
   Target,
+  Plug,
 } from "lucide-react";
 
-type Tab = "voice" | "audiences" | "outputs" | "account";
+type Tab = "voice" | "audiences" | "outputs" | "integrations" | "account";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("voice");
@@ -33,6 +35,7 @@ export default function SettingsPage() {
     { id: "voice" as const, label: "Your Voice", icon: Volume2 },
     { id: "audiences" as const, label: "Audiences", icon: Target },
     { id: "outputs" as const, label: "Output Types", icon: LayoutGrid },
+    { id: "integrations" as const, label: "Integrations", icon: Plug },
     { id: "account" as const, label: "Account", icon: User },
   ];
 
@@ -155,6 +158,25 @@ export default function SettingsPage() {
                 </p>
               </div>
               <CustomOutputTypeManager />
+            </motion.div>
+          )}
+
+          {activeTab === "integrations" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="max-w-2xl"
+            >
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-dark-100 mb-2">
+                  Integrations
+                </h2>
+                <p className="text-sm text-dark-400">
+                  Connect your tools to push Crisp outputs directly where you
+                  need them - Slack, Notion, Asana, Google Workspace, and more.
+                </p>
+              </div>
+              <IntegrationsManager />
             </motion.div>
           )}
 

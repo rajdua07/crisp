@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useAppStore, Integrations } from "@/lib/store";
 import {
   Briefcase,
   Mail,
@@ -25,6 +26,7 @@ import {
   Send,
   ThumbsUp,
   ThumbsDown,
+  ExternalLink,
 } from "lucide-react";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -40,6 +42,28 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   mic: Mic,
 };
 
+// Maps output type slugs to available integrations
+const OUTPUT_INTEGRATIONS: Record<
+  string,
+  { key: keyof Integrations; name: string; endpoint: string; needsField?: string }[]
+> = {
+  slack_message: [
+    { key: "slack", name: "Slack", endpoint: "/api/integrations/slack", needsField: "webhookUrl" },
+  ],
+  action_items: [
+    { key: "notion", name: "Notion", endpoint: "/api/integrations/notion", needsField: "apiKey" },
+    { key: "asana", name: "Asana", endpoint: "/api/integrations/asana", needsField: "accessToken" },
+    { key: "monday", name: "Monday", endpoint: "/api/integrations/monday", needsField: "apiKey" },
+  ],
+  slide_content: [
+    { key: "google", name: "Google Slides", endpoint: "/api/integrations/google-slides", needsField: "accessToken" },
+  ],
+  client_one_pager: [
+    { key: "google", name: "Google Docs", endpoint: "/api/integrations/google-docs", needsField: "accessToken" },
+    { key: "notion", name: "Notion", endpoint: "/api/integrations/notion", needsField: "apiKey" },
+  ],
+};
+
 interface OutputCardProps {
   type: string;
   name: string;
@@ -51,7 +75,6 @@ interface OutputCardProps {
 }
 
 export function OutputCard({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type,
   name,
   icon,
@@ -60,6 +83,7 @@ export function OutputCard({
   isLoading,
   onCalibrate,
 }: OutputCardProps) {
+  const { integrations } = useAppStore();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -70,6 +94,10 @@ export function OutputCard({
   const [tweakedContent, setTweakedContent] = useState<string | null>(null);
   const [rating, setRating] = useState<"up" | "down" | null>(null);
   const [showDownNudge, setShowDownNudge] = useState(false);
+  const [sendMenuOpen, setSendMenuOpen] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
+  const [sendResult, setSendResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
+  const sendMenuRef = useRef<HTMLDivElement>(null);
   const Icon = ICONS[icon] || Briefcase;
 
   const displayContent = tweakedContent || content;
@@ -168,6 +196,73 @@ export function OutputCard({
     }
   };
 
+  // Close send menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sendMenuRef.current && !sendMenuRef.current.contains(e.target as Node)) {
+        setSendMenuOpen(false);
+      }
+    };
+    if (sendMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [sendMenuOpen]);
+
+  // Get available integrations for this output type
+  const availableIntegrations = (OUTPUT_INTEGRATIONS[type] || []).filter(
+    (integration) => {
+      const config = integrations[integration.key];
+      if (!config) return false;
+      if (integration.needsField) {
+        return !!(config as Record<string, unknown>)[integration.needsField];
+      }
+      return true;
+    }
+  );
+
+  const handleSendTo = async (
+    integration: (typeof OUTPUT_INTEGRATIONS)[string][number],
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation();
+    setSending(integration.name);
+    setSendResult(null);
+    setSendMenuOpen(false);
+
+    try {
+      const config = integrations[integration.key] || {};
+      const res = await fetch(integration.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...config,
+          content: displayContent,
+          title: name,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send");
+      }
+
+      setSendResult({
+        success: true,
+        message: `Sent to ${integration.name}!`,
+        url: data.url,
+      });
+    } catch (err) {
+      setSendResult({
+        success: false,
+        message: err instanceof Error ? err.message : "Send failed",
+      });
+    } finally {
+      setSending(null);
+      setTimeout(() => setSendResult(null), 4000);
+    }
+  };
+
   if (isLoading) {
     return (
       <motion.div
@@ -262,6 +357,60 @@ export function OutputCard({
                     <Copy className="w-3.5 h-3.5" />
                   )}
                 </motion.button>
+                {/* Send to integration button */}
+                {availableIntegrations.length > 0 && (
+                  <div className="relative" ref={sendMenuRef}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (availableIntegrations.length === 1) {
+                          handleSendTo(availableIntegrations[0], e);
+                        } else {
+                          setSendMenuOpen(!sendMenuOpen);
+                        }
+                      }}
+                      className={`p-2 rounded-lg transition-all ${
+                        sending
+                          ? "bg-crisp-500/10 text-crisp-400"
+                          : "bg-dark-800 text-dark-500 hover:text-crisp-400 hover:bg-crisp-500/10 sm:opacity-0 sm:group-hover:opacity-100"
+                      }`}
+                      title={
+                        availableIntegrations.length === 1
+                          ? `Send to ${availableIntegrations[0].name}`
+                          : "Send to..."
+                      }
+                    >
+                      {sending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                    {/* Dropdown menu for multiple integrations */}
+                    <AnimatePresence>
+                      {sendMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                          className="absolute right-0 top-full mt-1 z-20 min-w-[140px] rounded-xl border border-dark-700/50 bg-dark-900 shadow-xl overflow-hidden"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {availableIntegrations.map((integration) => (
+                            <button
+                              key={integration.name}
+                              onClick={(e) => handleSendTo(integration, e)}
+                              className="w-full text-left px-3 py-2 text-xs text-dark-300 hover:text-dark-100 hover:bg-dark-800 transition-colors flex items-center gap-2"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              {integration.name}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </>
             )}
             {!editing && (
@@ -475,6 +624,40 @@ export function OutputCard({
             className="absolute top-2 right-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-medium px-3 py-1.5 rounded-full z-10"
           >
             Copied!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Send result toast */}
+      <AnimatePresence>
+        {sendResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={`absolute top-2 right-2 text-xs font-medium px-3 py-1.5 rounded-full z-10 flex items-center gap-1.5 ${
+              sendResult.success
+                ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
+                : "bg-red-500/20 border border-red-500/30 text-red-400"
+            }`}
+          >
+            {sendResult.success ? (
+              <Check className="w-3 h-3" />
+            ) : (
+              <X className="w-3 h-3" />
+            )}
+            {sendResult.message}
+            {sendResult.url && (
+              <a
+                href={sendResult.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline ml-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Open
+              </a>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
