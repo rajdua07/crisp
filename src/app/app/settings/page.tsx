@@ -54,7 +54,7 @@ export default function SettingsPage() {
         animate={{ opacity: 1, y: 0 }}
         className="sticky top-0 z-40 glass"
       >
-        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <a
               href="/app"
@@ -68,7 +68,7 @@ export default function SettingsPage() {
         </div>
       </motion.nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -76,19 +76,20 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-dark-100 mb-8">Settings</h1>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-8 border-b border-dark-800/50 pb-4">
+          <div className="flex gap-2 mb-6 sm:mb-8 border-b border-dark-800/50 pb-4 overflow-x-auto scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   activeTab === tab.id
                     ? "bg-crisp-500/10 text-crisp-400 border border-crisp-500/20"
                     : "text-dark-400 hover:text-dark-200 border border-transparent"
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
               </button>
             ))}
           </div>

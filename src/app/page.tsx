@@ -77,9 +77,9 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+      <section className="relative pt-20 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6 overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-crisp-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] sm:w-[800px] h-[300px] sm:h-[600px] bg-crisp-500/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-4xl mx-auto text-center relative">
           <motion.div
@@ -96,7 +96,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6"
+            className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6"
           >
             AI gave you the draft.{" "}
             <span className="gradient-text">Crisp makes it yours.</span>
@@ -106,7 +106,7 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg md:text-xl text-dark-300 max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-dark-300 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed"
           >
             Paste any AI output. Get it instantly recast into every format you
             need — in your voice — in 5 seconds.
@@ -136,7 +136,7 @@ export default function LandingPage() {
       </section>
 
       {/* Demo Section */}
-      <section id="demo" className="py-20 px-6">
+      <section id="demo" className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -161,7 +161,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-6"
+              className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-4 sm:p-6"
             >
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-red-500/60" />
@@ -215,21 +215,21 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-6">
+      <section className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Why <span className="gradient-text">Crisp</span> is different
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {[
               {
                 icon: Zap,
@@ -253,7 +253,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-8 hover:border-dark-600/50 transition-all duration-300 group"
+                className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-5 sm:p-8 hover:border-dark-600/50 transition-all duration-300 group"
               >
                 <div className="w-12 h-12 rounded-2xl bg-crisp-500/10 border border-crisp-500/20 flex items-center justify-center mb-5 group-hover:bg-crisp-500/15 transition-colors">
                   <feature.icon className="w-5 h-5 text-crisp-400" />
@@ -271,16 +271,16 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 px-6">
+      <section id="pricing" className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
               Simple, <span className="gradient-text">transparent</span> pricing
             </h2>
             <p className="text-dark-400 text-lg">
@@ -288,7 +288,7 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {PRICING_TIERS.map((tier, i) => (
               <motion.div
                 key={tier.name}
@@ -296,7 +296,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
-                className={`rounded-2xl p-8 transition-all duration-300 ${
+                className={`rounded-2xl p-5 sm:p-8 transition-all duration-300 ${
                   tier.featured
                     ? "border-2 border-crisp-500/40 bg-dark-900/60 shadow-lg shadow-crisp-500/10 relative"
                     : "border border-dark-700/50 bg-dark-900/30 hover:border-dark-600/50"
@@ -347,7 +347,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-6 border-t border-dark-800/50">
+      <footer className="py-8 sm:py-12 px-4 sm:px-6 border-t border-dark-800/50">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo size="small" />
           <p className="text-xs text-dark-500">

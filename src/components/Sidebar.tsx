@@ -113,12 +113,13 @@ export function Sidebar({
           width: isOpen ? 280 : 0,
           opacity: isOpen ? 1 : 0,
         }}
+        style={{ maxWidth: "85vw" }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed lg:relative top-0 left-0 h-screen z-40 bg-dark-950 border-r border-dark-800/50 flex flex-col overflow-hidden ${
+        className={`fixed lg:relative top-0 left-0 h-[100dvh] z-40 bg-dark-950 border-r border-dark-800/50 flex flex-col overflow-hidden ${
           isOpen ? "" : "lg:w-0"
         }`}
       >
-        <div className="flex-1 flex flex-col min-w-[280px]">
+        <div className="flex-1 flex flex-col w-[85vw] max-w-[280px] min-w-0">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-dark-800/50">
             <Logo size="small" />

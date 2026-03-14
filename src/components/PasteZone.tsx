@@ -165,12 +165,12 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           placeholder="Paste any AI output here..."
-          className={`w-full bg-transparent text-dark-100 placeholder-dark-500 p-6 pb-12 resize-none text-sm leading-relaxed focus:outline-none rounded-2xl ${
-            compact ? "min-h-[100px] max-h-[150px] overflow-y-auto" : "min-h-[200px]"
+          className={`w-full bg-transparent text-dark-100 placeholder-dark-500 p-4 sm:p-6 pb-10 sm:pb-12 resize-none text-sm leading-relaxed focus:outline-none rounded-2xl ${
+            compact ? "min-h-[80px] sm:min-h-[100px] max-h-[120px] sm:max-h-[150px] overflow-y-auto" : "min-h-[150px] sm:min-h-[200px]"
           }`}
           disabled={isLoading}
         />
-        <div className="absolute bottom-3 left-6 right-6 flex items-center justify-between">
+        <div className="absolute bottom-2 sm:bottom-3 left-4 sm:left-6 right-4 sm:right-6 flex items-center justify-between">
           <span className="text-xs text-dark-500 font-mono">
             {charCount > 0 && `${charCount.toLocaleString()} chars`}
           </span>
@@ -305,7 +305,7 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
         <div className="text-[10px] uppercase tracking-widest text-dark-500 font-medium mb-2">
           Output types
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 max-h-[120px] sm:max-h-none overflow-y-auto sm:overflow-visible">
           {ALL_OUTPUT_TYPES.map((type) => {
             const Icon = OUTPUT_ICONS[type.icon] || Sparkles;
             const isEnabled = enabledOutputTypes.includes(type.slug);

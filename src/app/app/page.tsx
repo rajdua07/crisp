@@ -320,7 +320,7 @@ export default function AppPage() {
   }))];
 
   return (
-    <div className="flex h-screen bg-dark-950">
+    <div className="flex h-[100dvh] bg-dark-950">
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -336,12 +336,20 @@ export default function AppPage() {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 h-14 border-b border-dark-800/50 flex-shrink-0">
+        <div className="flex items-center justify-between px-3 sm:px-6 h-14 border-b border-dark-800/50 flex-shrink-0">
           <div className="flex items-center gap-3">
+            {(!sidebarOpen || true) && (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 rounded-lg text-dark-400 hover:text-dark-200 hover:bg-dark-800/50 transition-colors lg:hidden"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+            )}
             {!sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-lg text-dark-400 hover:text-dark-200 hover:bg-dark-800/50 transition-colors"
+                className="p-2 rounded-lg text-dark-400 hover:text-dark-200 hover:bg-dark-800/50 transition-colors hidden lg:block"
               >
                 <Menu className="w-4 h-4" />
               </button>
@@ -367,7 +375,7 @@ export default function AppPage() {
 
         {/* Main content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
             <AnimatePresence mode="wait">
               {!hasResults ? (
                 <motion.div
@@ -375,7 +383,7 @@ export default function AppPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]"
+                  className="flex flex-col items-center justify-center min-h-[calc(100dvh-200px)]"
                 >
                   <div className="w-full max-w-2xl">
                     <motion.div
@@ -416,7 +424,7 @@ export default function AppPage() {
                   key="results"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="grid lg:grid-cols-[1fr_1.2fr] gap-8"
+                  className="grid lg:grid-cols-[1fr_1.2fr] gap-4 sm:gap-8"
                 >
                   {/* Left — Paste zone + Thought Depth */}
                   <div className="space-y-5">

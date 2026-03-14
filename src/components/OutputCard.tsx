@@ -175,7 +175,7 @@ export function OutputCard({
       className="group relative rounded-2xl border border-dark-700/50 bg-dark-900/50 hover:bg-dark-800/50 hover:border-dark-600/50 transition-all duration-300 overflow-hidden cursor-pointer glow-hover"
       onClick={() => !editing && setExpanded(!expanded)}
     >
-      <div className="p-5">
+      <div className="p-3 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-crisp-500/10 border border-crisp-500/20 flex items-center justify-center">
@@ -203,7 +203,7 @@ export function OutputCard({
               <>
                 <button
                   onClick={handleEdit}
-                  className="p-2 rounded-lg bg-dark-800 text-dark-500 hover:text-dark-200 hover:bg-dark-700 transition-all opacity-0 group-hover:opacity-100"
+                  className="p-2 rounded-lg bg-dark-800 text-dark-500 hover:text-dark-200 hover:bg-dark-700 transition-all sm:opacity-0 sm:group-hover:opacity-100"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
@@ -216,7 +216,7 @@ export function OutputCard({
                   className={`p-2 rounded-lg transition-all ${
                     tweaking
                       ? "bg-crisp-500/10 text-crisp-400"
-                      : "bg-dark-800 text-dark-500 hover:text-crisp-400 hover:bg-crisp-500/10 opacity-0 group-hover:opacity-100"
+                      : "bg-dark-800 text-dark-500 hover:text-crisp-400 hover:bg-crisp-500/10 sm:opacity-0 sm:group-hover:opacity-100"
                   }`}
                   title="Tweak with AI"
                 >
@@ -284,7 +284,7 @@ export function OutputCard({
                       setTweakPrompt("");
                     }
                   }}
-                  placeholder="e.g. Make it shorter, change subject to Q3, translate to Spanish..."
+                  placeholder="e.g. Make shorter, change subject, translate..."
                   className="flex-1 bg-transparent text-sm text-dark-200 placeholder-dark-500 focus:outline-none"
                   autoFocus
                   disabled={tweakLoading}
