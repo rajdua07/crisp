@@ -21,6 +21,9 @@ import {
   Link,
   Save,
   X,
+  Sparkles,
+  Loader2,
+  Send,
 } from "lucide-react";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -64,12 +67,18 @@ export function OutputCard({
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
+  const [tweaking, setTweaking] = useState(false);
+  const [tweakPrompt, setTweakPrompt] = useState("");
+  const [tweakLoading, setTweakLoading] = useState(false);
+  const [tweakedContent, setTweakedContent] = useState<string | null>(null);
   const Icon = ICONS[icon] || Briefcase;
+
+  const displayContent = tweakedContent || content;
 
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      const textToCopy = editing ? editContent : content;
+      const textToCopy = editing ? editContent : displayContent;
       try {
         await navigator.clipboard.writeText(textToCopy);
         setCopied(true);
@@ -85,21 +94,22 @@ export function OutputCard({
         setTimeout(() => setCopied(false), 2000);
       }
     },
-    [content, editContent, editing]
+    [displayContent, editContent, editing]
   );
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditing(true);
-    setEditContent(content);
+    setEditContent(displayContent);
     setExpanded(true);
   };
 
   const handleSaveEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditing(false);
-    if (editContent !== content && onCalibrate) {
-      onCalibrate(content, editContent);
+    setTweakedContent(editContent);
+    if (editContent !== displayContent && onCalibrate) {
+      onCalibrate(displayContent, editContent);
     }
   };
 
@@ -111,8 +121,38 @@ export function OutputCard({
 
   const handleChain = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const textToChain = editing ? editContent : content;
+    const textToChain = editing ? editContent : displayContent;
     onChain?.(textToChain);
+  };
+
+  const handleTweak = async () => {
+    if (!tweakPrompt.trim() || tweakLoading) return;
+    setTweakLoading(true);
+    try {
+      const res = await fetch("/api/crisp/tweak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: displayContent,
+          instruction: tweakPrompt.trim(),
+          output_type: name,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Tweak failed");
+      }
+      const { tweaked_content } = await res.json();
+      setTweakedContent(tweaked_content);
+      setEditContent(tweaked_content);
+      setTweakPrompt("");
+      setTweaking(false);
+      setExpanded(true);
+    } catch {
+      // Could show error, but keep it simple
+    } finally {
+      setTweakLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -136,7 +176,7 @@ export function OutputCard({
     );
   }
 
-  const previewLines = content.split("\n").slice(0, 2).join("\n");
+  const previewLines = displayContent.split("\n").slice(0, 2).join("\n");
 
   return (
     <motion.div
@@ -187,6 +227,21 @@ export function OutputCard({
                     <Link className="w-3.5 h-3.5" />
                   </button>
                 )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTweaking(!tweaking);
+                    if (!tweaking) setExpanded(true);
+                  }}
+                  className={`p-2 rounded-lg transition-all ${
+                    tweaking
+                      ? "bg-crisp-500/10 text-crisp-400"
+                      : "bg-dark-800 text-dark-500 hover:text-crisp-400 hover:bg-crisp-500/10 opacity-0 group-hover:opacity-100"
+                  }`}
+                  title="Tweak with AI"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                </button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -221,6 +276,65 @@ export function OutputCard({
           </div>
         </div>
 
+        {/* Tweak input */}
+        <AnimatePresence>
+          {tweaking && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div
+                className="flex items-center gap-2 mb-3 p-2 rounded-xl bg-dark-800/50 border border-crisp-500/20"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-crisp-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  value={tweakPrompt}
+                  onChange={(e) => setTweakPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleTweak();
+                    }
+                    if (e.key === "Escape") {
+                      setTweaking(false);
+                      setTweakPrompt("");
+                    }
+                  }}
+                  placeholder="e.g. Make it shorter, change subject to Q3, translate to Spanish..."
+                  className="flex-1 bg-transparent text-sm text-dark-200 placeholder-dark-500 focus:outline-none"
+                  autoFocus
+                  disabled={tweakLoading}
+                />
+                <button
+                  onClick={handleTweak}
+                  disabled={!tweakPrompt.trim() || tweakLoading}
+                  className="p-1.5 rounded-lg bg-crisp-500/10 text-crisp-400 hover:bg-crisp-500/20 transition-colors disabled:opacity-40"
+                >
+                  {tweakLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTweaking(false);
+                    setTweakPrompt("");
+                  }}
+                  className="p-1.5 rounded-lg text-dark-500 hover:text-dark-300 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           {editing ? (
             <motion.div
@@ -249,7 +363,7 @@ export function OutputCard({
               transition={{ duration: 0.2 }}
               className="text-sm text-dark-200 leading-relaxed whitespace-pre-wrap"
             >
-              {content}
+              {displayContent}
             </motion.div>
           ) : (
             <motion.div
