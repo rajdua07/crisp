@@ -12,14 +12,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { samples } = body;
+    const { samples, categories } = body;
 
     if (!samples || !Array.isArray(samples) || samples.length === 0) {
       return Response.json({ error: "At least one writing sample is required" }, { status: 400 });
     }
 
     const samplesText = samples
-      .map((s: string, i: number) => `--- Sample ${i + 1} ---\n${s}`)
+      .map((s: string, i: number) => {
+        const category = categories?.[i] ? ` (${categories[i]})` : "";
+        return `--- Sample ${i + 1}${category} ---\n${s}`;
+      })
       .join("\n\n");
 
     const response = await anthropic.messages.create({

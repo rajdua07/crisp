@@ -17,6 +17,23 @@ import {
 import { useAppStore, VoiceProfile } from "@/lib/store";
 import { v4 as uuidv4 } from "uuid";
 
+const SAMPLE_CATEGORIES = [
+  { value: "email", label: "Email" },
+  { value: "slack", label: "Slack Message" },
+  { value: "linkedin", label: "LinkedIn Post" },
+  { value: "client-email", label: "Client Email" },
+  { value: "text", label: "Text Message" },
+  { value: "memo", label: "Memo / Brief" },
+  { value: "other", label: "Other" },
+] as const;
+
+type SampleCategory = (typeof SAMPLE_CATEGORIES)[number]["value"];
+
+interface CategorizedSample {
+  text: string;
+  category: SampleCategory;
+}
+
 export function VoiceProfileEditor() {
   const {
     voiceProfiles,
@@ -27,7 +44,7 @@ export function VoiceProfileEditor() {
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<"samples" | "record">("samples");
-  const [samples, setSamples] = useState<string[]>([""]);
+  const [samples, setSamples] = useState<CategorizedSample[]>([{ text: "", category: "email" }]);
   const [profileName, setProfileName] = useState("Personal Voice");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -38,14 +55,16 @@ export function VoiceProfileEditor() {
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const addSample = () => setSamples([...samples, ""]);
+  const addSample = () => setSamples([...samples, { text: "", category: "email" }]);
   const removeSample = (index: number) =>
     setSamples(samples.filter((_, i) => i !== index));
-  const updateSample = (index: number, value: string) =>
-    setSamples(samples.map((s, i) => (i === index ? value : s)));
+  const updateSampleText = (index: number, value: string) =>
+    setSamples(samples.map((s, i) => (i === index ? { ...s, text: value } : s)));
+  const updateSampleCategory = (index: number, category: SampleCategory) =>
+    setSamples(samples.map((s, i) => (i === index ? { ...s, category } : s)));
 
   const analyzeSamples = async () => {
-    const validSamples = samples.filter((s) => s.trim().length > 0);
+    const validSamples = samples.filter((s) => s.text.trim().length > 0);
     if (validSamples.length < 1) {
       setError("Add at least one writing sample");
       return;
@@ -59,7 +78,10 @@ export function VoiceProfileEditor() {
       const res = await fetch("/api/voice-profile/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ samples: validSamples }),
+        body: JSON.stringify({
+          samples: validSamples.map((s) => s.text),
+          categories: validSamples.map((s) => s.category),
+        }),
       });
 
       if (!res.ok) {
@@ -74,7 +96,7 @@ export function VoiceProfileEditor() {
         name: profileName,
         source: "samples",
         profileData,
-        writingSamples: validSamples,
+        writingSamples: validSamples.map((s) => `[${s.category}] ${s.text}`),
         isDefault: voiceProfiles.length === 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -82,7 +104,7 @@ export function VoiceProfileEditor() {
 
       addVoiceProfile(profile);
       setSuccess(`"${profileName}" voice profile created!`);
-      setSamples([""]);
+      setSamples([{ text: "", category: "email" }]);
       setProfileName("Personal Voice");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analysis failed");
@@ -232,21 +254,35 @@ export function VoiceProfileEditor() {
               posts. The more samples, the better the voice match.
             </p>
             {samples.map((sample, i) => (
-              <div key={i} className="relative">
+              <div key={i} className="relative space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={sample.category}
+                    onChange={(e) => updateSampleCategory(i, e.target.value as SampleCategory)}
+                    className="bg-dark-900/50 border border-dark-700/50 rounded-lg px-2.5 py-1.5 text-xs text-dark-300 focus:outline-none focus:border-crisp-500/30 transition-colors appearance-none cursor-pointer"
+                  >
+                    {SAMPLE_CATEGORIES.map((cat) => (
+                      <option key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-dark-600">Sample {i + 1}</span>
+                  {samples.length > 1 && (
+                    <button
+                      onClick={() => removeSample(i)}
+                      className="ml-auto p-1 rounded-lg text-dark-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
                 <textarea
-                  value={sample}
-                  onChange={(e) => updateSample(i, e.target.value)}
-                  placeholder={`Writing sample ${i + 1}...`}
+                  value={sample.text}
+                  onChange={(e) => updateSampleText(i, e.target.value)}
+                  placeholder={`Paste a ${SAMPLE_CATEGORIES.find(c => c.value === sample.category)?.label.toLowerCase() || "writing"} sample...`}
                   className="w-full bg-dark-900/50 border border-dark-700/50 rounded-xl px-4 py-3 text-sm text-dark-200 placeholder-dark-600 focus:outline-none focus:border-crisp-500/30 min-h-[100px] resize-none transition-colors"
                 />
-                {samples.length > 1 && (
-                  <button
-                    onClick={() => removeSample(i)}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg text-dark-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </div>
             ))}
             {samples.length < 5 && (
@@ -262,7 +298,7 @@ export function VoiceProfileEditor() {
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               onClick={analyzeSamples}
-              disabled={isAnalyzing || !samples.some((s) => s.trim())}
+              disabled={isAnalyzing || !samples.some((s) => s.text.trim())}
               className="w-full py-3 rounded-xl font-medium text-sm bg-gradient-to-r from-crisp-600 to-crisp-500 text-white disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
             >
               {isAnalyzing ? (
