@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
 import { buildRecastPrompt } from "@/lib/prompts";
+import { getOrCreateUser } from "@/lib/auth";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -8,6 +9,8 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   try {
+    await getOrCreateUser();
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return Response.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
     }

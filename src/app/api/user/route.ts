@@ -1,0 +1,100 @@
+import { getOrCreateUser, getPlanLimits } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  try {
+    const user = await getOrCreateUser();
+    const limits = getPlanLimits(user.plan);
+
+    // Fetch all user data in parallel
+    const [voiceProfiles, audiences, sessions, customOutputTypes] =
+      await Promise.all([
+        prisma.voiceProfile.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.audience.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "asc" },
+        }),
+        prisma.session.findMany({
+          where: { userId: user.id },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          include: { outputs: true },
+        }),
+        prisma.customOutputType.findMany({
+          where: { userId: user.id },
+          orderBy: { sortOrder: "asc" },
+        }),
+      ]);
+
+    return Response.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        plan: user.plan.toLowerCase(),
+        crispsUsedThisMonth: user.crispsUsedThisMonth,
+        crispsResetAt: user.crispsResetAt.toISOString(),
+        stripeCustomerId: user.stripeCustomerId,
+        stripeSubscriptionId: user.stripeSubscriptionId,
+      },
+      limits,
+      voiceProfiles: voiceProfiles.map((vp) => ({
+        id: vp.id,
+        name: vp.name,
+        source: vp.source,
+        profileData: vp.profileData,
+        writingSamples: vp.writingSamples,
+        voiceTranscript: vp.voiceTranscript,
+        isDefault: vp.isDefault,
+        createdAt: vp.createdAt.toISOString(),
+        updatedAt: vp.updatedAt.toISOString(),
+      })),
+      audiences: audiences.map((a) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        icon: a.icon,
+        tonePreset: {
+          formality: a.formality,
+          warmth: a.warmth,
+          detail: a.detail,
+        },
+      })),
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        inputText: s.inputText,
+        summary: s.summary,
+        thoughtDepthScore: s.thoughtDepth,
+        outputs: s.outputs.map((o) => ({
+          id: o.id,
+          outputTypeSlug: o.outputTypeSlug,
+          outputTypeName: o.outputTypeName,
+          content: o.content,
+          userEdits: o.userEdits,
+          copied: false,
+          voiceProfileId: o.voiceProfileId,
+        })),
+        createdAt: s.createdAt.toISOString(),
+      })),
+      customOutputTypes: customOutputTypes.map((ct) => ({
+        id: ct.id,
+        name: ct.name,
+        slug: ct.slug,
+        instructions: ct.instructions,
+        icon: ct.icon,
+        defaultVoiceProfileId: ct.defaultVoiceProfileId,
+        sortOrder: ct.sortOrder,
+      })),
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "Unauthorized") {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return Response.json(
+      { error: err instanceof Error ? err.message : "Failed to load user data" },
+      { status: 500 }
+    );
+  }
+}

@@ -18,6 +18,7 @@ import {
 } from "@/lib/store";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
 import { Sparkles, Menu, AlertCircle } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 import { v4 as uuidv4 } from "uuid";
 
 interface OutputResult {
@@ -39,6 +40,7 @@ export default function AppPage() {
     audiences,
     activeAudienceId,
     toneFormality,
+    hydrateFromServer,
   } = useAppStore();
 
   const limits = PLAN_LIMITS[user.plan];
@@ -58,8 +60,10 @@ export default function AppPage() {
   const [inputText, setInputText] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Check for upgrade/session query params
+  // Hydrate from server + check query params
   useEffect(() => {
+    hydrateFromServer();
+
     const params = new URLSearchParams(window.location.search);
     if (params.get("upgrade") === "true") {
       setShowUpgrade(true);
@@ -367,9 +371,7 @@ export default function AppPage() {
                 {user.crispsUsedThisMonth}/{limits.crispsPerMonth} crisps
               </span>
             )}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-crisp-500 to-crisp-600 flex items-center justify-center text-white text-xs font-bold">
-              U
-            </div>
+            <UserButton />
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { VoiceProfileEditor } from "@/components/VoiceProfileEditor";
@@ -21,8 +21,13 @@ type Tab = "voice" | "audiences" | "outputs" | "account";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("voice");
-  const { user, setUser, resetMonthlyUsage } = useAppStore();
+  const { user, setUser, resetMonthlyUsage, hydrateFromServer } = useAppStore();
   const limits = PLAN_LIMITS[user.plan];
+
+  useEffect(() => {
+    hydrateFromServer();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const tabs = [
     { id: "voice" as const, label: "Your Voice", icon: Volume2 },

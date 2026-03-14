@@ -2,8 +2,11 @@
 
 import { Logo } from "./Logo";
 import { motion } from "framer-motion";
+import { useAuth, UserButton } from "@clerk/nextjs";
 
 export function Navbar() {
+  const { isSignedIn } = useAuth();
+
   return (
     <motion.nav
       initial={{ opacity: 0, y: -10 }}
@@ -22,12 +25,32 @@ export function Navbar() {
           >
             Pricing
           </a>
-          <a
-            href="/app"
-            className="text-sm font-medium bg-dark-800/80 hover:bg-dark-700 text-dark-100 px-4 py-2 rounded-xl border border-dark-700/50 hover:border-dark-600/50 transition-all"
-          >
-            Launch App
-          </a>
+          {isSignedIn ? (
+            <>
+              <a
+                href="/app"
+                className="text-sm font-medium bg-dark-800/80 hover:bg-dark-700 text-dark-100 px-4 py-2 rounded-xl border border-dark-700/50 hover:border-dark-600/50 transition-all"
+              >
+                Launch App
+              </a>
+              <UserButton />
+            </>
+          ) : (
+            <>
+              <a
+                href="/sign-in"
+                className="text-sm text-dark-300 hover:text-dark-100 transition-colors hidden sm:block"
+              >
+                Sign In
+              </a>
+              <a
+                href="/sign-up"
+                className="text-sm font-medium bg-dark-800/80 hover:bg-dark-700 text-dark-100 px-4 py-2 rounded-xl border border-dark-700/50 hover:border-dark-600/50 transition-all"
+              >
+                Get Started
+              </a>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>

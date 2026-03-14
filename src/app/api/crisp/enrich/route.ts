@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getOrCreateUser } from "@/lib/auth";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -31,6 +32,8 @@ Return ONLY the enriched content. No meta-commentary or explanations.`;
 
 export async function POST(request: Request) {
   try {
+    await getOrCreateUser();
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return Response.json(
         { error: "ANTHROPIC_API_KEY not configured" },

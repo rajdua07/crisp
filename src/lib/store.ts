@@ -108,6 +108,8 @@ export interface CustomOutputType {
 export type Plan = "free" | "pro" | "team" | "enterprise";
 
 export interface UserState {
+  id?: string;
+  email?: string;
   plan: Plan;
   crispsUsedThisMonth: number;
   crispsResetAt: string;
@@ -117,6 +119,10 @@ export interface UserState {
 
 // ─── Store ───
 interface AppState {
+  // Hydration
+  hydrated: boolean;
+  hydrateFromServer: () => Promise<void>;
+
   // User
   user: UserState;
   setUser: (user: Partial<UserState>) => void;
@@ -165,6 +171,36 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      // ─── Hydration ───
+      hydrated: false,
+      hydrateFromServer: async () => {
+        try {
+          const res = await fetch("/api/user");
+          if (!res.ok) return;
+          const data = await res.json();
+
+          set({
+            hydrated: true,
+            user: {
+              id: data.user.id,
+              email: data.user.email,
+              plan: data.user.plan as Plan,
+              crispsUsedThisMonth: data.user.crispsUsedThisMonth,
+              crispsResetAt: data.user.crispsResetAt,
+              stripeCustomerId: data.user.stripeCustomerId,
+              stripeSubscriptionId: data.user.stripeSubscriptionId,
+            },
+            voiceProfiles: data.voiceProfiles,
+            audiences: data.audiences,
+            sessions: data.sessions,
+            customOutputTypes: data.customOutputTypes,
+          });
+        } catch {
+          // If server hydration fails, keep using local data
+          set({ hydrated: true });
+        }
+      },
+
       // ─── User ───
       user: {
         plan: "free" as Plan,

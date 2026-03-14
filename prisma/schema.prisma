@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users ───
+model User {
+  id                    String    @id @default(cuid())
+  clerkId               String    @unique
+  email                 String    @unique
+  plan                  Plan      @default(FREE)
+  crispsUsedThisMonth   Int       @default(0)
+  crispsResetAt         DateTime  @default(now())
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  voiceProfiles    VoiceProfile[]
+  audiences        Audience[]
+  sessions         Session[]
+  customOutputTypes CustomOutputType[]
+  calibrations     Calibration[]
+  feedback         OutputFeedback[]
+
+  @@map("users")
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+// ─── Voice Profiles ───
+model VoiceProfile {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  source         String   @default("samples") // samples | voice | calibration | mixed
+  profileData    Json     // VoiceProfileData structure
+  writingSamples Json     @default("[]") // Array of { text, category }
+  voiceTranscript String?
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("voice_profiles")
+}
+
+// ─── Audiences ───
+model Audience {
+  id          String @id @default(cuid())
+  userId      String
+  name        String
+  description String
+  icon        String @default("users")
+  formality   Float  @default(0.5)
+  warmth      Float  @default(0.5)
+  detail      Float  @default(0.5)
+  isDefault   Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audiences")
+}
+
+// ─── Sessions ───
+model Session {
+  id              String   @id @default(cuid())
+  userId          String
+  inputText       String
+  summary         String?
+  thoughtDepth    Json?    // ThoughtDepthScore
+  audienceId      String?
+  toneFormality   Float?
+  chainParentId   String?
+  createdAt       DateTime @default(now())
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outputs SessionOutput[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("sessions")
+}
+
+model SessionOutput {
+  id             String  @id @default(cuid())
+  sessionId      String
+  outputTypeSlug String
+  outputTypeName String
+  content        String
+  userEdits      String?
+  voiceProfileId String?
+
+  session  Session          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  feedback OutputFeedback[]
+
+  @@map("session_outputs")
+}
+
+// ─── Custom Output Types ───
+model CustomOutputType {
+  id                  String  @id @default(cuid())
+  userId              String
+  name                String
+  slug                String
+  instructions        String
+  icon                String  @default("file-text")
+  defaultVoiceProfileId String?
+  sortOrder           Int     @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slug])
+  @@map("custom_output_types")
+}
+
+// ─── Calibration Data ───
+model Calibration {
+  id              String   @id @default(cuid())
+  userId          String
+  originalContent String
+  editedContent   String
+  adjustments     Json?    // AI-extracted voice adjustments
+  outputType      String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("calibrations")
+}
+
+// ─── Output Feedback ───
+model OutputFeedback {
+  id              String   @id @default(cuid())
+  userId          String
+  sessionOutputId String
+  rating          String   // "up" | "down"
+  tweakedContent  String?  // Content at time of rating (if modified)
+  createdAt       DateTime @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionOutput SessionOutput @relation(fields: [sessionOutputId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionOutputId])
+  @@map("output_feedback")
+}

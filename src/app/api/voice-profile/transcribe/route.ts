@@ -1,5 +1,6 @@
 import { VOICE_ANALYSIS_PROMPT } from "@/lib/prompts";
 import Anthropic from "@anthropic-ai/sdk";
+import { getOrCreateUser } from "@/lib/auth";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -7,6 +8,8 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   try {
+    await getOrCreateUser();
+
     const formData = await request.formData();
     const audioFile = formData.get("audio") as File;
 

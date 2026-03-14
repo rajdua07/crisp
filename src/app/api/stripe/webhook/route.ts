@@ -1,3 +1,6 @@
+import { prisma } from "@/lib/prisma";
+import { Plan } from "@/generated/prisma/client";
+
 export async function POST(request: Request) {
   try {
     if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -21,19 +24,60 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        // In production: update user's plan in DB based on session.metadata.plan
-        console.log("Checkout completed:", session.metadata?.plan);
+        const plan = (session.metadata?.plan || "pro").toUpperCase() as Plan;
+        const customerId =
+          typeof session.customer === "string" ? session.customer : session.customer?.id;
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
+
+        if (customerId) {
+          await prisma.user.update({
+            where: { stripeCustomerId: customerId },
+            data: {
+              plan,
+              stripeSubscriptionId: subscriptionId || undefined,
+            },
+          });
+        }
         break;
       }
+
       case "customer.subscription.updated": {
         const subscription = event.data.object;
-        console.log("Subscription updated:", subscription.status);
+        const customerId =
+          typeof subscription.customer === "string"
+            ? subscription.customer
+            : subscription.customer?.id;
+
+        if (customerId && subscription.status === "active") {
+          // Subscription renewed or updated — keep plan active
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: { stripeSubscriptionId: subscription.id },
+          });
+        }
         break;
       }
+
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
-        console.log("Subscription canceled:", subscription.id);
-        // In production: downgrade user to free plan
+        const customerId =
+          typeof subscription.customer === "string"
+            ? subscription.customer
+            : subscription.customer?.id;
+
+        if (customerId) {
+          // Downgrade to free
+          await prisma.user.updateMany({
+            where: { stripeCustomerId: customerId },
+            data: {
+              plan: "FREE",
+              stripeSubscriptionId: null,
+            },
+          });
+        }
         break;
       }
     }

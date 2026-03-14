@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
 import { THOUGHT_DEPTH_PROMPT, buildRecastPrompt } from "@/lib/prompts";
+import { getOrCreateUser, getPlanLimits } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -33,6 +35,20 @@ async function scoreThoughtDepth(inputText: string) {
 
 export async function POST(request: Request) {
   try {
+    // Auth + usage check
+    const user = await getOrCreateUser();
+    const limits = getPlanLimits(user.plan);
+
+    if (
+      limits.crispsPerMonth !== Infinity &&
+      user.crispsUsedThisMonth >= limits.crispsPerMonth
+    ) {
+      return Response.json(
+        { error: "Monthly crisp limit reached. Upgrade your plan." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const {
       input_text,
@@ -113,6 +129,8 @@ export async function POST(request: Request) {
             output_types.includes(t.slug)
           );
 
+          const collectedOutputs: { type: string; name: string; content: string }[] = [];
+
           const outputPromises = selectedTypes.map(async (outputType) => {
             const prompt = buildRecastPrompt(
               outputType.name,
@@ -131,18 +149,42 @@ export async function POST(request: Request) {
             });
 
             const content = response.content[0].type === "text" ? response.content[0].text : "";
+            const output = { type: outputType.slug, name: outputType.name, content };
+            collectedOutputs.push(output);
+
             controller.enqueue(
               encoder.encode(
-                `event: output\ndata: ${JSON.stringify({
-                  type: outputType.slug,
-                  name: outputType.name,
-                  content,
-                })}\n\n`
+                `event: output\ndata: ${JSON.stringify(output)}\n\n`
               )
             );
           });
 
-          await Promise.all([summaryPromise, ...outputPromises]);
+          const [summary] = await Promise.all([summaryPromise, ...outputPromises]);
+
+          // Persist session to DB
+          await prisma.session.create({
+            data: {
+              userId: user.id,
+              inputText: input_text,
+              summary: summary || undefined,
+              thoughtDepth: thoughtDepth || undefined,
+              audienceId: audience?.id,
+              toneFormality: tone_formality,
+              outputs: {
+                create: collectedOutputs.map((o) => ({
+                  outputTypeSlug: o.type,
+                  outputTypeName: o.name,
+                  content: o.content,
+                })),
+              },
+            },
+          });
+
+          // Increment usage
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { crispsUsedThisMonth: { increment: 1 } },
+          });
 
           controller.enqueue(
             encoder.encode(
@@ -170,7 +212,10 @@ export async function POST(request: Request) {
         Connection: "keep-alive",
       },
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "Unauthorized") {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
 }
