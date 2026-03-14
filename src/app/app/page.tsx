@@ -55,6 +55,7 @@ export default function AppPage() {
   const [chainSource, setChainSource] = useState<string | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
   const [lastInputText, setLastInputText] = useState<string | null>(null);
+  const [inputText, setInputText] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check for upgrade/session query params
@@ -319,7 +320,7 @@ export default function AppPage() {
     };
   }, []);
 
-  const hasResults = outputs.length > 0 || thoughtDepth;
+  const hasResults = outputs.length > 0 || thoughtDepth || isLoading;
 
   const allTypes = [...ALL_OUTPUT_TYPES, ...customOutputTypes.map((ct) => ({
     slug: ct.slug,
@@ -406,7 +407,7 @@ export default function AppPage() {
                         Drop a ChatGPT dump, Claude response, or any AI-generated text.
                       </p>
                     </motion.div>
-                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} />
+                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} />
 
                     {/* Quick stats */}
                     <div className="flex items-center justify-center gap-6 mt-8 text-xs text-dark-500">
@@ -430,7 +431,7 @@ export default function AppPage() {
                 >
                   {/* Left — Paste zone + Thought Depth */}
                   <div className="space-y-5">
-                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} />
+                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} />
                     {thoughtDepth && (
                       <ThoughtDepthIndicator
                         score={thoughtDepth}

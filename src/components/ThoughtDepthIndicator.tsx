@@ -161,7 +161,7 @@ export function ThoughtDepthIndicator({ score, onEnrich, isEnriching }: ThoughtD
                 );
               })}
 
-              {score.total < 70 && onEnrich && (
+              {score.total < 80 && onEnrich && (
                 <motion.button
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}

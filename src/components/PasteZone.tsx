@@ -52,6 +52,8 @@ const AUDIENCE_ICONS: Record<string, React.ComponentType<{ className?: string }>
 interface PasteZoneProps {
   onSubmit: (text: string) => void;
   isLoading: boolean;
+  text: string;
+  onTextChange: (text: string) => void;
 }
 
 function getToneLabel(value: number): string {
@@ -62,7 +64,7 @@ function getToneLabel(value: number): string {
   return "Formal";
 }
 
-export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
+export function PasteZone({ onSubmit, isLoading, text, onTextChange }: PasteZoneProps) {
   const {
     audiences,
     activeAudienceId,
@@ -72,18 +74,17 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
     enabledOutputTypes,
     setEnabledOutputTypes,
     customOutputTypes,
+    user,
   } = useAppStore();
 
-  const [text, setText] = useState("");
-  const [charCount, setCharCount] = useState(0);
+  const charCount = text.length;
   const [isDragOver, setIsDragOver] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const activeAudience = audiences.find((a) => a.id === activeAudienceId);
+  const isFree = user.plan === "free";
+  const FREE_SLUGS = ["email_draft", "action_items", "slack_message"];
 
-  useEffect(() => {
-    setCharCount(text.length);
-  }, [text]);
+  const activeAudience = audiences.find((a) => a.id === activeAudienceId);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -122,7 +123,7 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
     setIsDragOver(false);
     const droppedText = e.dataTransfer.getData("text/plain");
     if (droppedText) {
-      setText(droppedText);
+      onTextChange(droppedText);
     }
   }, []);
 
@@ -152,7 +153,7 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
         <textarea
           ref={textareaRef}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => onTextChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -300,25 +301,30 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
           {ALL_OUTPUT_TYPES.map((type) => {
             const Icon = OUTPUT_ICONS[type.icon] || Sparkles;
             const isEnabled = enabledOutputTypes.includes(type.slug);
+            const isLocked = isFree && !FREE_SLUGS.includes(type.slug);
             return (
               <button
                 key={type.slug}
                 onClick={() => {
+                  if (isLocked) return;
                   if (isEnabled) {
                     setEnabledOutputTypes(enabledOutputTypes.filter((s) => s !== type.slug));
                   } else {
                     setEnabledOutputTypes([...enabledOutputTypes, type.slug]);
                   }
                 }}
-                title={type.description}
+                title={isLocked ? "Upgrade to Pro to unlock" : type.description}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
-                  isEnabled
+                  isLocked
+                    ? "bg-dark-900/20 text-dark-700 border-dark-800/30 cursor-not-allowed"
+                    : isEnabled
                     ? "bg-crisp-500/10 text-crisp-400 border-crisp-500/20"
                     : "bg-dark-900/30 text-dark-600 border-dark-800/50 hover:text-dark-400 hover:border-dark-700/50"
                 }`}
               >
                 <Icon className="w-3 h-3" />
                 {type.name}
+                {isLocked && <span className="text-[9px] text-dark-600">Pro</span>}
               </button>
             );
           })}
@@ -348,6 +354,9 @@ export function PasteZone({ onSubmit, isLoading }: PasteZoneProps) {
         </div>
         <div className="mt-1.5 text-[10px] text-dark-600">
           {enabledOutputTypes.length} selected
+          {isFree && enabledOutputTypes.length > 0 && enabledOutputTypes.every((s) => !FREE_SLUGS.includes(s)) && (
+            <span className="text-amber-400 ml-2">- none available on Free plan</span>
+          )}
         </div>
       </div>
 

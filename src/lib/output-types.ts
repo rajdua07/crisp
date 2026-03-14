@@ -48,10 +48,26 @@ export const ALL_OUTPUT_TYPES: OutputType[] = [
   },
   {
     slug: "slide_content",
-    name: "Slide Content",
+    name: "Slide Deck",
     icon: "presentation",
-    description: "Headline + 3 bullets",
-    instructions: `Headline (max 8 words) + 3 supporting bullets (max 12 words each). The headline should be a claim, not a topic. "Revenue grew 23% in Q2" not "Q2 Revenue Update." Bullets should support the headline claim.`,
+    description: "Full slide deck, text-only for Gamma/PPT",
+    instructions: `Create a complete slide deck outline (text only, to be pasted into tools like Gamma or Google Slides). Format each slide as:
+
+SLIDE 1: [Title Slide]
+[Title - a bold claim or hook, not a generic topic]
+[Subtitle - one line of context]
+
+SLIDE 2-N: [Content Slides]
+[Slide headline - a claim, not a topic. "Revenue grew 23% in Q2" not "Q2 Revenue Update"]
+- Bullet 1 (max 12 words)
+- Bullet 2 (max 12 words)
+- Bullet 3 (max 12 words)
+[Optional: Speaker note in italics]
+
+FINAL SLIDE: [Closing/CTA]
+[Clear next step or call to action]
+
+Aim for 5-10 slides depending on content depth. Every headline should be a claim that tells the story on its own - someone skimming just the headlines should understand the full narrative.`,
   },
   {
     slug: "client_one_pager",
