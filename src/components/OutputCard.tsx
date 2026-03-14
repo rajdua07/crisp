@@ -23,6 +23,8 @@ import {
   Sparkles,
   Loader2,
   Send,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -66,6 +68,8 @@ export function OutputCard({
   const [tweakPrompt, setTweakPrompt] = useState("");
   const [tweakLoading, setTweakLoading] = useState(false);
   const [tweakedContent, setTweakedContent] = useState<string | null>(null);
+  const [rating, setRating] = useState<"up" | "down" | null>(null);
+  const [showDownNudge, setShowDownNudge] = useState(false);
   const Icon = ICONS[icon] || Briefcase;
 
   const displayContent = tweakedContent || content;
@@ -141,6 +145,26 @@ export function OutputCard({
       // Could show error, but keep it simple
     } finally {
       setTweakLoading(false);
+    }
+  };
+
+  const handleRating = (value: "up" | "down", e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (rating === value) {
+      setRating(null);
+      setShowDownNudge(false);
+      return;
+    }
+    setRating(value);
+    if (value === "up") {
+      setShowDownNudge(false);
+      // If content was tweaked/edited, send calibration data
+      if (displayContent !== content && onCalibrate) {
+        onCalibrate(content, displayContent);
+      }
+    } else {
+      // Thumbs down — nudge to tweak or edit
+      setShowDownNudge(true);
     }
   };
 
@@ -355,6 +379,87 @@ export function OutputCard({
               className="text-sm text-dark-300 leading-relaxed line-clamp-2"
             >
               {previewLines}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Feedback bar */}
+        <AnimatePresence>
+          {expanded && !editing && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div
+                className="flex items-center justify-between mt-4 pt-3 border-t border-dark-800/50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span className="text-[10px] text-dark-500">
+                  {rating === "up"
+                    ? "Thanks! This helps Crisp learn your voice."
+                    : rating === "down" && showDownNudge
+                    ? "Try tweaking it first, then thumbs up when it's right."
+                    : "Does this sound like you?"}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => handleRating("up", e)}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      rating === "up"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "text-dark-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+                    }`}
+                  >
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => handleRating("down", e)}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      rating === "down"
+                        ? "bg-red-500/10 text-red-400"
+                        : "text-dark-500 hover:text-red-400 hover:bg-red-500/10"
+                    }`}
+                  >
+                    <ThumbsDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              {/* Nudge to tweak after thumbs down */}
+              <AnimatePresence>
+                {showDownNudge && rating === "down" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="flex items-center gap-2 mt-2"
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDownNudge(false);
+                        setTweaking(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-crisp-500/10 border border-crisp-500/20 text-crisp-400 text-[11px] font-medium hover:bg-crisp-500/15 transition-all"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Tweak with AI
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDownNudge(false);
+                        handleEdit(e);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-800 border border-dark-700/50 text-dark-300 text-[11px] font-medium hover:text-dark-200 transition-all"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit manually
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>
