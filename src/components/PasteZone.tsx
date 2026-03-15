@@ -22,6 +22,7 @@ import {
   Share2,
   Smartphone,
   Mic,
+  Upload,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
@@ -80,7 +81,11 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
 
   const charCount = text.length;
   const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isFree = user.plan === "free";
   const FREE_SLUGS = ["email_draft", "action_items", "slack_message"];
@@ -124,14 +129,44 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
     setIsDragOver(false);
   }, []);
 
+  const handleFileExtract = useCallback(async (file: File) => {
+    const { isSupported, extractText } = await import("@/lib/document-parser");
+    if (!isSupported(file)) {
+      setFileError("Only PDF and DOCX files are supported.");
+      return;
+    }
+    setFileLoading(true);
+    setFileError(null);
+    try {
+      const extracted = await extractText(file);
+      if (!extracted.trim()) {
+        setFileError("No text could be extracted from this file.");
+        return;
+      }
+      onTextChange(extracted);
+      setUploadedFileName(file.name);
+    } catch {
+      setFileError("Failed to extract text from file. Try pasting the content instead.");
+    } finally {
+      setFileLoading(false);
+    }
+  }, [onTextChange]);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+
+    // Check for file drops first
+    if (e.dataTransfer.files?.length > 0) {
+      handleFileExtract(e.dataTransfer.files[0]);
+      return;
+    }
+
     const droppedText = e.dataTransfer.getData("text/plain");
     if (droppedText) {
       onTextChange(droppedText);
     }
-  }, []);
+  }, [handleFileExtract, onTextChange]);
 
   const selectAudience = (id: string | null) => {
     setActiveAudienceId(id);
@@ -164,21 +199,88 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          placeholder="Paste any AI output here..."
+          placeholder="Paste any AI output here, or drop a PDF/DOCX file..."
           className={`w-full bg-transparent text-dark-100 placeholder-dark-500 p-4 sm:p-6 pb-10 sm:pb-12 resize-none text-sm leading-relaxed focus:outline-none rounded-2xl ${
             compact ? "min-h-[80px] sm:min-h-[100px] max-h-[120px] sm:max-h-[150px] overflow-y-auto" : "min-h-[150px] sm:min-h-[200px]"
           }`}
           disabled={isLoading}
         />
+        {/* File upload input (hidden) */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileExtract(file);
+            e.target.value = "";
+          }}
+        />
         <div className="absolute bottom-2 sm:bottom-3 left-4 sm:left-6 right-4 sm:right-6 flex items-center justify-between">
-          <span className="text-xs text-dark-500 font-mono">
-            {charCount > 0 && `${charCount.toLocaleString()} chars`}
-          </span>
-          <span className="text-xs text-dark-600 hidden sm:block">
-            {charCount > 0 && "\u2318+Enter to Crisp"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-dark-500 font-mono">
+              {charCount > 0 && `${charCount.toLocaleString()} chars`}
+            </span>
+            {uploadedFileName && (
+              <span className="flex items-center gap-1 text-[10px] text-crisp-400 bg-crisp-500/10 px-2 py-0.5 rounded-full">
+                <FileText className="w-2.5 h-2.5" />
+                {uploadedFileName}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUploadedFileName(null);
+                    onTextChange("");
+                  }}
+                  className="ml-0.5 hover:text-crisp-300"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              disabled={isLoading || fileLoading}
+              className="flex items-center gap-1 text-[10px] text-dark-500 hover:text-dark-300 transition-colors"
+              title="Upload PDF or DOCX"
+            >
+              {fileLoading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Upload className="w-3 h-3" />
+              )}
+              <span className="hidden sm:inline">Upload</span>
+            </button>
+            <span className="text-xs text-dark-600 hidden sm:block">
+              {charCount > 0 && "\u2318+Enter to Crisp"}
+            </span>
+          </div>
         </div>
       </motion.div>
+
+      {/* File error */}
+      <AnimatePresence>
+        {fileError && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <span>{fileError}</span>
+              <button onClick={() => setFileError(null)} className="p-0.5 hover:text-red-300">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Audience pills */}
       <div>

@@ -1,3 +1,9 @@
+/** Output type slugs that support file download (DOCX/PDF) */
+export const DOCUMENT_OUTPUT_SLUGS: Record<string, "docx" | "pdf"> = {
+  formatted_document: "docx",
+  pdf_report: "pdf",
+};
+
 export interface OutputType {
   slug: string;
   name: string;
@@ -96,5 +102,39 @@ Aim for 5-10 slides depending on content depth. Every headline should be a claim
     icon: "mic",
     description: "Speakable voice memo",
     instructions: `Write exactly how someone would say this out loud in a voice note. Conversational, not written. Use filler phrases sparingly ("so basically", "the thing is") to sound natural. No bullet points or formatting - just flowing speech. Keep under 45 seconds when read aloud (roughly 100-120 words). Start mid-thought like a real voice note ("Hey so I just looked at this and..."). End with a clear ask or next step.`,
+  },
+  {
+    slug: "formatted_document",
+    name: "Document (DOCX)",
+    icon: "file-text",
+    description: "Professional document, downloadable as DOCX",
+    instructions: `Create a well-structured professional document. Use markdown-style headers (## Section Title) to organize content. Include:
+- A clear executive summary or introduction paragraph
+- Logically organized sections with descriptive headers
+- Bullet points for lists and key points
+- Concluding section with recommendations or next steps
+
+Write in complete, polished paragraphs. Aim for 300-600 words depending on content depth. This will be exported as a formatted DOCX file, so structure matters. No metadata or subject lines — just the document body.`,
+  },
+  {
+    slug: "pdf_report",
+    name: "Report (PDF)",
+    icon: "file-text",
+    description: "Formal report, downloadable as PDF",
+    instructions: `Create a formal report suitable for external distribution. Use markdown-style headers (## Section Title) to delineate sections. Structure as:
+
+## Overview
+Brief context and purpose (2-3 sentences).
+
+## Key Findings
+The core insights, data points, or analysis. Use bullet points for clarity.
+
+## Analysis
+Deeper discussion of implications, tradeoffs, or supporting evidence. Full paragraphs.
+
+## Recommendations
+Actionable next steps, numbered if possible.
+
+Write in a professional, third-person tone. Aim for 400-800 words. This will be exported as a formatted PDF, so clean structure and clear headers are essential.`,
   },
 ];

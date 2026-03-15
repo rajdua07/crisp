@@ -27,7 +27,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   ExternalLink,
+  Download,
 } from "lucide-react";
+import { DOCUMENT_OUTPUT_SLUGS } from "@/lib/output-types";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   briefcase: Briefcase,
@@ -97,10 +99,31 @@ export function OutputCard({
   const [sendMenuOpen, setSendMenuOpen] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const Icon = ICONS[icon] || Briefcase;
 
   const displayContent = tweakedContent || content;
+  const documentFormat = DOCUMENT_OUTPUT_SLUGS[type];
+
+  const handleDownload = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!documentFormat || downloading) return;
+    setDownloading(true);
+    try {
+      const { exportToDocx, exportToPdf } = await import("@/lib/document-export");
+      const filename = `crisp-${type}-${Date.now()}`;
+      if (documentFormat === "docx") {
+        await exportToDocx(displayContent, filename);
+      } else {
+        await exportToPdf(displayContent, filename);
+      }
+    } catch {
+      // Silent fail — file download either works or doesn't
+    } finally {
+      setDownloading(false);
+    }
+  }, [documentFormat, displayContent, type, downloading]);
 
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
@@ -357,6 +380,23 @@ export function OutputCard({
                     <Copy className="w-3.5 h-3.5" />
                   )}
                 </motion.button>
+                {/* Download as DOCX/PDF */}
+                {documentFormat && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="p-2 rounded-lg transition-all duration-200 bg-crisp-500/10 text-crisp-400 hover:bg-crisp-500/20 border border-crisp-500/20"
+                    title={`Download as ${documentFormat.toUpperCase()}`}
+                  >
+                    {downloading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                  </motion.button>
+                )}
                 {/* Send to integration button */}
                 {availableIntegrations.length > 0 && (
                   <div className="relative" ref={sendMenuRef}>
