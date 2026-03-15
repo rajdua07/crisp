@@ -23,6 +23,9 @@ import {
   Smartphone,
   Mic,
   Upload,
+  Bookmark,
+  Save,
+  Trash2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
@@ -77,6 +80,9 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
     setEnabledOutputTypes,
     customOutputTypes,
     user,
+    templates,
+    addTemplate,
+    deleteTemplate,
   } = useAppStore();
 
   const charCount = text.length;
@@ -84,6 +90,8 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -469,6 +477,125 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
           )}
         </div>
       </div>
+
+      {/* Templates */}
+      {(templates.length > 0 || enabledOutputTypes.length > 0) && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] uppercase tracking-widest text-dark-500 font-medium">
+              Templates
+            </div>
+            {enabledOutputTypes.length > 0 && !showSaveTemplate && (
+              <button
+                onClick={() => setShowSaveTemplate(true)}
+                className="flex items-center gap-1 text-[10px] text-dark-500 hover:text-crisp-400 transition-colors"
+              >
+                <Save className="w-2.5 h-2.5" />
+                Save current
+              </button>
+            )}
+          </div>
+
+          {/* Save template form */}
+          <AnimatePresence>
+            {showSaveTemplate && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-2"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && templateName.trim()) {
+                        const tpl = {
+                          id: `tpl_${Date.now()}`,
+                          name: templateName.trim(),
+                          outputTypes: enabledOutputTypes,
+                          audienceId: activeAudienceId || undefined,
+                          toneFormality,
+                          icon: "sparkles",
+                          usageCount: 0,
+                        };
+                        addTemplate(tpl);
+                        fetch("/api/templates", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(tpl),
+                        }).catch(() => {});
+                        setTemplateName("");
+                        setShowSaveTemplate(false);
+                      }
+                      if (e.key === "Escape") {
+                        setShowSaveTemplate(false);
+                        setTemplateName("");
+                      }
+                    }}
+                    placeholder="Template name..."
+                    className="flex-1 bg-dark-900/50 border border-dark-700/50 rounded-lg px-3 py-1.5 text-xs text-dark-200 placeholder-dark-500 focus:outline-none focus:border-crisp-500/30"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => {
+                      setShowSaveTemplate(false);
+                      setTemplateName("");
+                    }}
+                    className="p-1.5 text-dark-500 hover:text-dark-300"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Template pills */}
+          {templates.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {templates.map((tpl) => (
+                <div key={tpl.id} className="group/tpl relative">
+                  <button
+                    onClick={() => {
+                      setEnabledOutputTypes(tpl.outputTypes);
+                      if (tpl.audienceId) setActiveAudienceId(tpl.audienceId);
+                      setToneFormality(tpl.toneFormality);
+                      fetch("/api/templates/use", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: tpl.id }),
+                      }).catch(() => {});
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border bg-dark-900/30 text-dark-400 border-dark-800/50 hover:text-crisp-400 hover:border-crisp-500/20 hover:bg-crisp-500/5"
+                  >
+                    <Bookmark className="w-3 h-3" />
+                    {tpl.name}
+                    {tpl.usageCount > 0 && (
+                      <span className="text-[9px] text-dark-600">{tpl.usageCount}x</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      deleteTemplate(tpl.id);
+                      fetch("/api/templates", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: tpl.id }),
+                      }).catch(() => {});
+                    }}
+                    className="absolute -top-1 -right-1 p-0.5 rounded-full bg-dark-800 border border-dark-700/50 text-dark-500 hover:text-red-400 opacity-0 group-hover/tpl:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Crisp It button */}
       <motion.button

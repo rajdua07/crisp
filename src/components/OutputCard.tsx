@@ -28,6 +28,7 @@ import {
   ThumbsDown,
   ExternalLink,
   Download,
+  Link,
 } from "lucide-react";
 import { DOCUMENT_OUTPUT_SLUGS } from "@/lib/output-types";
 
@@ -73,6 +74,7 @@ interface OutputCardProps {
   content: string;
   index: number;
   isLoading?: boolean;
+  sessionId?: string;
   onCalibrate?: (original: string, edited: string) => void;
 }
 
@@ -83,6 +85,7 @@ export function OutputCard({
   content,
   index,
   isLoading,
+  sessionId,
   onCalibrate,
 }: OutputCardProps) {
   const { integrations } = useAppStore();
@@ -100,6 +103,8 @@ export function OutputCard({
   const [sending, setSending] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string; url?: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shared, setShared] = useState(false);
   const sendMenuRef = useRef<HTMLDivElement>(null);
   const Icon = ICONS[icon] || Briefcase;
 
@@ -124,6 +129,34 @@ export function OutputCard({
       setDownloading(false);
     }
   }, [documentFormat, displayContent, type, downloading]);
+
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!sessionId || sharing) return;
+    setSharing(true);
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          outputSlug: type,
+          outputName: name,
+          content: displayContent,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const { shareToken } = await res.json();
+      const shareUrl = `${window.location.origin}/share/${shareToken}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShared(true);
+      setTimeout(() => setShared(false), 3000);
+    } catch {
+      // silent
+    } finally {
+      setSharing(false);
+    }
+  }, [sessionId, type, name, displayContent, sharing]);
 
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
@@ -397,6 +430,29 @@ export function OutputCard({
                     )}
                   </motion.button>
                 )}
+                {/* Share link */}
+                {sessionId && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleShare}
+                    disabled={sharing}
+                    className={`p-2 rounded-lg transition-all duration-200 ${
+                      shared
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : "bg-dark-800 text-dark-500 hover:text-dark-200 hover:bg-dark-700 sm:opacity-0 sm:group-hover:opacity-100"
+                    }`}
+                    title={shared ? "Link copied!" : "Share public link"}
+                  >
+                    {sharing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : shared ? (
+                      <Link className="w-3.5 h-3.5" />
+                    ) : (
+                      <Share2 className="w-3.5 h-3.5" />
+                    )}
+                  </motion.button>
+                )}
                 {/* Send to integration button */}
                 {availableIntegrations.length > 0 && (
                   <div className="relative" ref={sendMenuRef}>
@@ -653,6 +709,21 @@ export function OutputCard({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Shared toast */}
+      <AnimatePresence>
+        {shared && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-2 right-2 bg-crisp-500/20 border border-crisp-500/30 text-crisp-400 text-xs font-medium px-3 py-1.5 rounded-full z-10 flex items-center gap-1.5"
+          >
+            <Link className="w-3 h-3" />
+            Share link copied!
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Copied toast */}
       <AnimatePresence>

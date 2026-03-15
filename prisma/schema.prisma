@@ -26,6 +26,8 @@ model User {
   customOutputTypes CustomOutputType[]
   calibrations     Calibration[]
   feedback         OutputFeedback[]
+  sharedOutputs    SharedOutput[]
+  templates        Template[]
 
   @@map("users")
 }
@@ -84,10 +86,12 @@ model Session {
   audienceId      String?
   toneFormality   Float?
   chainParentId   String?
+  starred         Boolean  @default(false)
   createdAt       DateTime @default(now())
 
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  outputs SessionOutput[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outputs       SessionOutput[]
+  sharedOutputs SharedOutput[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("sessions")
@@ -141,6 +145,43 @@ model Calibration {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("calibrations")
+}
+
+// ─── Shared Outputs (public links) ───
+model SharedOutput {
+  id             String   @id @default(cuid())
+  userId         String
+  sessionId      String
+  outputSlug     String
+  outputName     String
+  content        String
+  shareToken     String   @unique @default(cuid())
+  viewCount      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([shareToken])
+  @@map("shared_outputs")
+}
+
+// ─── Templates (saved workflow presets) ───
+model Template {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  outputTypes    Json     // string[] of slugs
+  audienceId     String?
+  toneFormality  Float    @default(0.5)
+  icon           String   @default("sparkles")
+  usageCount     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("templates")
 }
 
 // ─── Output Feedback ───

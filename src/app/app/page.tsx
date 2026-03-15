@@ -17,7 +17,7 @@ import {
   CrispSession,
 } from "@/lib/store";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
-import { Sparkles, Menu, AlertCircle } from "lucide-react";
+import { Sparkles, Menu, AlertCircle, Star } from "lucide-react";
 import { SafeUserButton } from "@/lib/clerk-helpers";
 import { v4 as uuidv4 } from "uuid";
 
@@ -33,6 +33,7 @@ export default function AppPage() {
     incrementCrisps,
     addSession,
     getSession,
+    toggleStarSession,
     voiceProfiles,
     activeVoiceProfileId,
     enabledOutputTypes,
@@ -366,6 +367,29 @@ export default function AppPage() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {activeSessionId && (
+              <button
+                onClick={() => {
+                  toggleStarSession(activeSessionId);
+                  fetch("/api/sessions/star", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      sessionId: activeSessionId,
+                      starred: !getSession(activeSessionId)?.starred,
+                    }),
+                  }).catch(() => {});
+                }}
+                className={`p-2 rounded-lg transition-all ${
+                  getSession(activeSessionId)?.starred
+                    ? "text-amber-400 bg-amber-500/10"
+                    : "text-dark-500 hover:text-amber-400 hover:bg-amber-500/10"
+                }`}
+                title={getSession(activeSessionId)?.starred ? "Unstar" : "Star this crisp"}
+              >
+                <Star className={`w-4 h-4 ${getSession(activeSessionId)?.starred ? "fill-current" : ""}`} />
+              </button>
+            )}
             {user.plan === "free" && (
               <span className="text-xs text-dark-500">
                 {user.crispsUsedThisMonth}/{limits.crispsPerMonth} crisps
@@ -465,6 +489,7 @@ export default function AppPage() {
                           icon={typeInfo?.icon || "briefcase"}
                           content={output.content}
                           index={i}
+                          sessionId={activeSessionId || undefined}
                           onCalibrate={handleCalibrate}
                         />
                       );

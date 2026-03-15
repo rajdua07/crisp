@@ -80,7 +80,19 @@ export interface CrispSession {
   chainParentId?: string;
   audienceId?: string;
   toneFormality?: number;
+  starred?: boolean;
   createdAt: string;
+}
+
+// ─── Templates ───
+export interface Template {
+  id: string;
+  name: string;
+  outputTypes: string[];
+  audienceId?: string;
+  toneFormality: number;
+  icon: string;
+  usageCount: number;
 }
 
 export interface SessionOutput {
@@ -156,6 +168,13 @@ interface AppState {
   sessions: CrispSession[];
   addSession: (session: CrispSession) => void;
   getSession: (id: string) => CrispSession | undefined;
+  toggleStarSession: (id: string) => void;
+
+  // Templates
+  templates: Template[];
+  setTemplates: (templates: Template[]) => void;
+  addTemplate: (template: Template) => void;
+  deleteTemplate: (id: string) => void;
 
   // Custom output types
   customOutputTypes: CustomOutputType[];
@@ -276,6 +295,20 @@ export const useAppStore = create<AppState>()(
       addSession: (session) =>
         set((s) => ({ sessions: [session, ...s.sessions].slice(0, 100) })),
       getSession: (id) => get().sessions.find((s) => s.id === id),
+      toggleStarSession: (id) =>
+        set((s) => ({
+          sessions: s.sessions.map((sess) =>
+            sess.id === id ? { ...sess, starred: !sess.starred } : sess
+          ),
+        })),
+
+      // ─── Templates ───
+      templates: [],
+      setTemplates: (templates) => set({ templates }),
+      addTemplate: (template) =>
+        set((s) => ({ templates: [...s.templates, template] })),
+      deleteTemplate: (id) =>
+        set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
 
       // ─── Custom Output Types ───
       customOutputTypes: [],
