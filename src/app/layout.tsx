@@ -9,19 +9,25 @@ export const metadata: Metadata = {
   keywords: ["AI", "content", "recast", "voice", "productivity"],
 };
 
+const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <ClerkProvider>
-      <html lang="en" className="dark">
-        <body className="antialiased min-h-screen bg-dark-950">
-          <div className="noise-overlay pointer-events-none fixed inset-0 z-50 opacity-[0.015]" />
-          {children}
-        </body>
-      </html>
-    </ClerkProvider>
+  const content = (
+    <html lang="en" className="dark">
+      <body className="antialiased min-h-screen bg-dark-950">
+        <div className="noise-overlay pointer-events-none fixed inset-0 z-50 opacity-[0.015]" />
+        {children}
+      </body>
+    </html>
   );
+
+  if (hasClerk) {
+    return <ClerkProvider>{content}</ClerkProvider>;
+  }
+
+  return content;
 }

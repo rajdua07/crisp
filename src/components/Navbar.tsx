@@ -2,10 +2,10 @@
 
 import { Logo } from "./Logo";
 import { motion } from "framer-motion";
-import { useAuth, UserButton } from "@clerk/nextjs";
+import { SafeUserButton, useAuthSafe } from "@/lib/clerk-helpers";
 
 export function Navbar() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthSafe();
 
   return (
     <motion.nav
@@ -33,7 +33,7 @@ export function Navbar() {
               >
                 Launch App
               </a>
-              <UserButton />
+              <SafeUserButton />
             </>
           ) : (
             <>

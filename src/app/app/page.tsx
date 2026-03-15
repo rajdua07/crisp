@@ -18,7 +18,7 @@ import {
 } from "@/lib/store";
 import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
 import { Sparkles, Menu, AlertCircle } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { SafeUserButton } from "@/lib/clerk-helpers";
 import { v4 as uuidv4 } from "uuid";
 
 interface OutputResult {
@@ -371,7 +371,7 @@ export default function AppPage() {
                 {user.crispsUsedThisMonth}/{limits.crispsPerMonth} crisps
               </span>
             )}
-            <UserButton />
+            <SafeUserButton />
           </div>
         </div>
 
