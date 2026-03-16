@@ -120,8 +120,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6"
           >
-            Drop one doc.{" "}
-            <span className="gradient-text">Get every format, in your voice.</span>
+            AI writes for everyone.{" "}
+            <span className="gradient-text">Crisp writes like you.</span>
           </motion.h1>
 
           <motion.p
@@ -130,11 +130,10 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-base sm:text-lg md:text-xl text-dark-300 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed"
           >
-            Humanizers smooth a few words. Crisp transforms one document into
-            exec briefs, emails, Slack messages, slide decks, and downloadable
-            docs — all rewritten in
-            <em className="text-dark-100 not-italic font-medium"> your </em>
-            voice, for the right audience, in seconds.
+            Every AI tool gives you the same generic voice. Crisp learns your
+            writing patterns, tone, and style — then transforms any AI output
+            or document into content that actually sounds like it came from
+            <em className="text-dark-100 not-italic font-medium"> you</em>.
           </motion.p>
 
           <motion.div
