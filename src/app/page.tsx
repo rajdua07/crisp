@@ -663,44 +663,64 @@ export default function LandingPage() {
                 title: "Mac App",
                 desc: "Lives in your menu bar. Watches your clipboard. When you paste AI content anywhere, Crisp pops up and offers to rewrite it — one click.",
                 badge: "macOS",
+                href: "/download",
               },
               {
                 icon: Globe,
                 title: "Browser Extension",
                 desc: "Detects AI text the moment you paste into Gmail, Slack, Notion, LinkedIn, or any text field. Inline popover, instant rewrite.",
                 badge: "Chrome + Safari",
+                href: undefined as string | undefined,
               },
               {
                 icon: Clipboard,
                 title: "Clipboard Magic",
                 desc: "The rewritten text replaces your clipboard automatically. Just paste again. No switching tabs, no extra steps. Your voice, instantly.",
                 badge: "Automatic",
+                href: undefined as string | undefined,
               },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.12 }}
-                className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-6 hover:border-dark-600/50 transition-all duration-300 group"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-crisp-500/10 border border-crisp-500/20 flex items-center justify-center group-hover:bg-crisp-500/15 transition-colors">
-                    <item.icon className="w-4.5 h-4.5 text-crisp-400" />
+            ].map((item, i) => {
+              const card = (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.12 }}
+                  className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-6 hover:border-dark-600/50 transition-all duration-300 group"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-crisp-500/10 border border-crisp-500/20 flex items-center justify-center group-hover:bg-crisp-500/15 transition-colors">
+                      <item.icon className="w-4.5 h-4.5 text-crisp-400" />
+                    </div>
+                    <span className="text-[10px] font-medium text-dark-500 uppercase tracking-wider px-2 py-0.5 rounded-full border border-dark-700/50 bg-dark-900/50">
+                      {item.badge}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-medium text-dark-500 uppercase tracking-wider px-2 py-0.5 rounded-full border border-dark-700/50 bg-dark-900/50">
-                    {item.badge}
-                  </span>
-                </div>
-                <h3 className="text-base font-semibold text-dark-100 mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-dark-400 leading-relaxed">
-                  {item.desc}
-                </p>
-              </motion.div>
-            ))}
+                  <h3 className="text-base font-semibold text-dark-100 mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-dark-400 leading-relaxed">
+                    {item.desc}
+                  </p>
+                  {item.href && (
+                    <div className="mt-4 flex items-center gap-1 text-xs text-crisp-400">
+                      <Download className="w-3 h-3" />
+                      <span>Download now</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </div>
+                  )}
+                </motion.div>
+              );
+
+              return item.href ? (
+                <a key={item.title} href={item.href} className="block">
+                  {card}
+                </a>
+              ) : (
+                card
+              );
+            })}
           </div>
 
           {/* Workflow visualization */}
