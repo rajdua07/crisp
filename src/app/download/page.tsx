@@ -166,17 +166,24 @@ export default function DownloadPage() {
                 )}
               </>
             ) : (
-              <div className="space-y-3 text-center">
-                <div className="px-8 py-4 rounded-2xl border border-dark-700/50 bg-dark-900/30 text-dark-300 text-sm">
-                  The Mac app is coming soon. Use the web app in the meantime.
-                </div>
+              <div className="flex flex-col items-center gap-5">
                 <a
                   href="/app"
-                  className="inline-flex items-center gap-2 text-sm text-crisp-400 hover:text-crisp-300 transition-colors"
+                  className="group bg-gradient-to-r from-crisp-600 to-crisp-500 text-white px-10 py-4 rounded-2xl font-semibold text-sm shadow-lg shadow-crisp-500/25 hover:shadow-crisp-500/40 transition-all duration-300 flex items-center gap-3 glow"
                 >
                   Open Web App
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </a>
+                <div className="px-6 py-3 rounded-xl border border-dark-700/50 bg-dark-900/30 text-sm text-dark-400 max-w-md text-center">
+                  The native Mac app is in beta. Join the{" "}
+                  <a
+                    href="#waitlist"
+                    className="text-crisp-400 hover:text-crisp-300 transition-colors"
+                  >
+                    waitlist
+                  </a>{" "}
+                  to get early access, or use the full-featured web app now.
+                </div>
               </div>
             )}
 
