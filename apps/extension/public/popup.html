@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f14;
+      color: #e5e5e5;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #6ee7b7;
+      letter-spacing: -0.03em;
+    }
+    .header span {
+      font-size: 11px;
+      color: #666;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 12px;
+    }
+    .toggle-row label {
+      font-size: 13px;
+      color: #ccc;
+    }
+    .toggle-row input[type="checkbox"] {
+      accent-color: #6ee7b7;
+      width: 16px;
+      height: 16px;
+    }
+    .field {
+      margin-bottom: 12px;
+    }
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .field input {
+      width: 100%;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      color: #e5e5e5;
+      font-size: 12px;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: rgba(110, 231, 183, 0.3);
+    }
+    .save-btn {
+      width: 100%;
+      padding: 10px 0;
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .save-btn:hover { opacity: 0.9; }
+    .status {
+      font-size: 10px;
+      color: #6ee7b7;
+      text-align: center;
+      margin-top: 8px;
+      display: none;
+    }
+    .footer {
+      font-size: 10px;
+      color: #444;
+      text-align: center;
+      margin-top: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/>
+      <path d="M8 14v1a4 4 0 0 0 8 0v-1"/>
+    </svg>
+    <div>
+      <h1>Crisp</h1>
+      <span>Make AI sound like you</span>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <label>Active on this site</label>
+    <input type="checkbox" id="enabled" checked>
+  </div>
+
+  <div class="field">
+    <label>Auth Token</label>
+    <input type="password" id="authToken" placeholder="From crisp.app/settings">
+  </div>
+
+  <div class="field">
+    <label>API URL</label>
+    <input type="text" id="apiUrl" placeholder="https://crisp.app">
+  </div>
+
+  <button class="save-btn" id="save">Save</button>
+  <div class="status" id="status">Saved!</div>
+
+  <p class="footer">
+    Crisp detects AI-generated content when you paste and offers to rewrite it in your voice.
+  </p>
+
+  <script src="popup.js"></script>
+</body>
+</html>

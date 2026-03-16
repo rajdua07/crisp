@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Logo } from "@/components/Logo";
@@ -25,6 +26,10 @@ import {
   Fingerprint,
   PenLine,
   UserCheck,
+  Monitor,
+  Globe,
+  Clipboard,
+  Zap,
 } from "lucide-react";
 
 const OUTPUT_CARDS = [
@@ -601,6 +606,105 @@ export default function LandingPage() {
                   </motion.div>
                 )
               )}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Works Everywhere — Mac app + Browser extension */}
+      <section className="py-12 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12 sm:mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-crisp-500/20 bg-crisp-500/5 text-xs text-crisp-400 mb-4">
+              <Zap className="w-3 h-3" />
+              Coming Soon
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
+              Your voice, <span className="gradient-text">right where you paste</span>
+            </h2>
+            <p className="text-dark-400 text-lg max-w-2xl mx-auto">
+              Copy from ChatGPT. Paste into Slack. Crisp rewrites it in your voice
+              before anyone sees the difference.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Monitor,
+                title: "Mac App",
+                desc: "Lives in your menu bar. Watches your clipboard. When you paste AI content anywhere, Crisp pops up and offers to rewrite it — one click.",
+                badge: "macOS",
+              },
+              {
+                icon: Globe,
+                title: "Browser Extension",
+                desc: "Detects AI text the moment you paste into Gmail, Slack, Notion, LinkedIn, or any text field. Inline popover, instant rewrite.",
+                badge: "Chrome + Safari",
+              },
+              {
+                icon: Clipboard,
+                title: "Clipboard Magic",
+                desc: "The rewritten text replaces your clipboard automatically. Just paste again. No switching tabs, no extra steps. Your voice, instantly.",
+                badge: "Automatic",
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.12 }}
+                className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-6 hover:border-dark-600/50 transition-all duration-300 group"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-crisp-500/10 border border-crisp-500/20 flex items-center justify-center group-hover:bg-crisp-500/15 transition-colors">
+                    <item.icon className="w-4.5 h-4.5 text-crisp-400" />
+                  </div>
+                  <span className="text-[10px] font-medium text-dark-500 uppercase tracking-wider px-2 py-0.5 rounded-full border border-dark-700/50 bg-dark-900/50">
+                    {item.badge}
+                  </span>
+                </div>
+                <h3 className="text-base font-semibold text-dark-100 mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-dark-400 leading-relaxed">
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Workflow visualization */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-10 rounded-2xl border border-dark-700/50 bg-dark-900/30 p-5 sm:p-8"
+          >
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-center">
+              {[
+                { step: "Copy from ChatGPT", color: "text-dark-400" },
+                { step: "Paste into Slack", color: "text-dark-400" },
+                { step: "Crisp pops up", color: "text-crisp-400" },
+                { step: "One click — it's your voice", color: "text-crisp-300" },
+              ].map((item, i) => (
+                <React.Fragment key={item.step}>
+                  {i > 0 && (
+                    <ArrowRight className="w-4 h-4 text-dark-700 hidden sm:block flex-shrink-0" />
+                  )}
+                  <div className={`text-sm font-medium ${item.color} whitespace-nowrap`}>
+                    {item.step}
+                  </div>
+                </React.Fragment>
+              ))}
             </div>
           </motion.div>
         </div>

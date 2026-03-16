@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicedayfor/schemas/main/tauri/tauri.conf.schema.json",
+  "productName": "Crisp",
+  "version": "0.1.0",
+  "identifier": "com.crisp.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "trayIcon": {
+      "iconPath": "icons/tray-icon.png",
+      "iconAsTemplate": true
+    },
+    "windows": [
+      {
+        "label": "popover",
+        "title": "Crisp",
+        "width": 380,
+        "height": 280,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "skipTaskbar": true
+      },
+      {
+        "label": "settings",
+        "title": "Crisp Settings",
+        "width": 600,
+        "height": 500,
+        "resizable": true,
+        "visible": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "plugins": {
+    "clipboard-manager": {},
+    "shell": {},
+    "http": {
+      "scope": [
+        { "url": "https://*.crisp.app/**" },
+        { "url": "http://localhost:3000/**" }
+      ]
+    },
+    "positioner": {}
+  }
+}
