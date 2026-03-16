@@ -117,11 +117,12 @@ export function OutputCard({
     setDownloading(true);
     try {
       const { exportToDocx, exportToPdf } = await import("@/lib/document-export");
+      const branding = useAppStore.getState().documentBranding;
       const filename = `crisp-${type}-${Date.now()}`;
       if (documentFormat === "docx") {
-        await exportToDocx(displayContent, filename);
+        await exportToDocx(displayContent, filename, branding);
       } else {
-        await exportToPdf(displayContent, filename);
+        await exportToPdf(displayContent, filename, branding);
       }
     } catch {
       // Silent fail — file download either works or doesn't
