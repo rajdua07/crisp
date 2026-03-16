@@ -1,0 +1,194 @@
+name: Build & Release Mac App
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Create a GitHub release"
+        type: boolean
+        default: false
+
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2.0"
+
+      - name: Build Tauri app
+        working-directory: apps/desktop
+        run: cargo tauri build --target ${{ matrix.target }}
+        env:
+          # Apple code signing
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: crisp-macos-${{ matrix.target }}
+          path: |
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz
+          if-no-files-found: error
+
+  # Create a universal binary by combining both architectures
+  create-universal:
+    needs: build-macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download aarch64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: crisp-macos-aarch64-apple-darwin
+          path: artifacts/aarch64
+
+      - name: Download x86_64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: crisp-macos-x86_64-apple-darwin
+          path: artifacts/x86_64
+
+      - name: List artifacts
+        run: find artifacts -type f | head -20
+
+      - name: Upload universal artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: crisp-macos-universal
+          path: artifacts/
+          if-no-files-found: error
+
+  # Notarize and create GitHub release
+  release:
+    needs: create-universal
+    if: startsWith(github.ref, 'refs/tags/desktop-v') || github.event.inputs.release == 'true'
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: crisp-macos-universal
+          path: release-artifacts
+
+      - name: Notarize DMGs
+        run: |
+          # Find all DMG files and notarize them
+          find release-artifacts -name "*.dmg" | while read dmg; do
+            echo "Notarizing $dmg..."
+            xcrun notarytool submit "$dmg" \
+              --apple-id "${{ secrets.APPLE_ID }}" \
+              --password "${{ secrets.APPLE_PASSWORD }}" \
+              --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+              --wait
+
+            echo "Stapling $dmg..."
+            xcrun stapler staple "$dmg"
+          done
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/desktop-v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Crisp Desktop v${{ steps.version.outputs.version }}"
+          body: |
+            ## Crisp Desktop v${{ steps.version.outputs.version }}
+
+            ### Downloads
+            - **Apple Silicon (M1/M2/M3)**: `Crisp_*_aarch64.dmg`
+            - **Intel Mac**: `Crisp_*_x64.dmg`
+
+            ### What's new
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+
+            ### Installation
+            1. Download the DMG for your Mac
+            2. Open the DMG and drag Crisp to Applications
+            3. Launch Crisp from Applications — it appears in your menu bar
+            4. Click the menu bar icon → paste your auth token from crisp.app/settings
+          files: |
+            release-artifacts/**/*.dmg
+          draft: false
+          prerelease: false
+
+      - name: Generate update manifest for Tauri updater
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Get download URLs from release
+          AARCH64_URL="https://github.com/${{ github.repository }}/releases/download/desktop-v${VERSION}/Crisp_${VERSION}_aarch64.app.tar.gz"
+          X86_64_URL="https://github.com/${{ github.repository }}/releases/download/desktop-v${VERSION}/Crisp_${VERSION}_x64.app.tar.gz"
+
+          cat > update-manifest.json << EOF
+          {
+            "version": "v${VERSION}",
+            "notes": "Crisp Desktop v${VERSION}",
+            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "platforms": {
+              "darwin-aarch64": {
+                "url": "${AARCH64_URL}",
+                "signature": ""
+              },
+              "darwin-x86_64": {
+                "url": "${X86_64_URL}",
+                "signature": ""
+              }
+            }
+          }
+          EOF
+
+          cat update-manifest.json
+
+      - name: Upload update manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-manifest
+          path: update-manifest.json

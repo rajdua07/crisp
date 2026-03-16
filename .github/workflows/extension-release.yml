@@ -1,0 +1,176 @@
+name: Build & Publish Browser Extension
+
+on:
+  push:
+    tags:
+      - "ext-v*"
+  workflow_dispatch:
+    inputs:
+      publish_chrome:
+        description: "Publish to Chrome Web Store"
+        type: boolean
+        default: false
+      publish_firefox:
+        description: "Publish to Firefox Add-ons"
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Extract version from tag or manifest
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/ext-v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/ext-v}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(jq -r .version apps/extension/manifest.json)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update manifest version
+        working-directory: apps/extension
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.tmp && mv manifest.tmp manifest.json
+
+      - name: Build Chrome extension zip
+        working-directory: apps/extension
+        run: |
+          mkdir -p dist
+          zip -r dist/crisp-chrome-v${{ steps.version.outputs.version }}.zip \
+            manifest.json \
+            src/ \
+            public/ \
+            -x "*.DS_Store"
+
+      - name: Build Firefox extension (manifest v2 conversion)
+        working-directory: apps/extension
+        run: |
+          # Firefox still needs some manifest v2 adaptations
+          mkdir -p dist/firefox
+          cp -r src public dist/firefox/
+
+          # Convert manifest v3 → v2 for Firefox
+          jq '
+            .manifest_version = 2 |
+            .background = {"scripts": ["src/background.js"]} |
+            del(.action) |
+            .browser_action = {
+              "default_popup": "public/popup.html",
+              "default_icon": {
+                "16": "public/icon-16.png",
+                "48": "public/icon-48.png",
+                "128": "public/icon-128.png"
+              }
+            } |
+            .permissions = (.permissions + .host_permissions) |
+            del(.host_permissions)
+          ' manifest.json > dist/firefox/manifest.json
+
+          cd dist/firefox
+          zip -r ../crisp-firefox-v${{ steps.version.outputs.version }}.zip . -x "*.DS_Store"
+
+      - name: Upload Chrome extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: crisp-chrome-extension
+          path: apps/extension/dist/crisp-chrome-*.zip
+
+      - name: Upload Firefox extension
+        uses: actions/upload-artifact@v4
+        with:
+          name: crisp-firefox-extension
+          path: apps/extension/dist/crisp-firefox-*.zip
+
+  # Publish to Chrome Web Store
+  publish-chrome:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/ext-v') || github.event.inputs.publish_chrome == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Chrome extension
+        uses: actions/download-artifact@v4
+        with:
+          name: crisp-chrome-extension
+          path: dist
+
+      - name: Publish to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-path: dist/crisp-chrome-*.zip
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          publish: true
+
+  # Publish to Firefox Add-ons
+  publish-firefox:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/ext-v') || github.event.inputs.publish_firefox == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Firefox extension
+        uses: actions/download-artifact@v4
+        with:
+          name: crisp-firefox-extension
+          path: dist
+
+      - name: Publish to Firefox Add-ons
+        uses: yayuyokitano/firefox-addon@v1.0.4
+        with:
+          api_key: ${{ secrets.FIREFOX_API_KEY }}
+          api_secret: ${{ secrets.FIREFOX_API_SECRET }}
+          guid: "crisp@crisp.app"
+          xpi_path: dist/crisp-firefox-*.zip
+
+  # Create GitHub release with both builds
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/ext-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/ext-v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Crisp Extension v${{ steps.version.outputs.version }}"
+          body: |
+            ## Crisp Browser Extension v${{ steps.version.outputs.version }}
+
+            ### Install
+            - **Chrome**: [Chrome Web Store](https://chrome.google.com/webstore) (pending review)
+            - **Firefox**: [Firefox Add-ons](https://addons.mozilla.org) (pending review)
+            - **Manual**: Download the zip below and load as unpacked extension
+
+            ### What it does
+            Detects AI-generated content when you paste into any text field and offers
+            to rewrite it in your voice with one click. Works in Gmail, Slack, Notion,
+            LinkedIn, and everywhere else.
+          files: |
+            dist/*.zip
+          draft: false
+          prerelease: false

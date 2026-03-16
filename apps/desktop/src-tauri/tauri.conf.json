@@ -51,6 +51,12 @@
         { "url": "http://localhost:3000/**" }
       ]
     },
-    "positioner": {}
+    "positioner": {},
+    "updater": {
+      "endpoints": [
+        "https://crisp.app/api/desktop/update/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "pubkey": ""
+    }
   }
 }
