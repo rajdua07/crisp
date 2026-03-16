@@ -93,9 +93,10 @@ export function BrandingEditor() {
         {logoPreview ? (
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-lg bg-dark-800 border border-dark-700/50 flex items-center justify-center p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoPreview}
-                alt="Logo preview"
+                alt="Company logo preview"
                 className="max-w-full max-h-full object-contain"
               />
             </div>
