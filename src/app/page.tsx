@@ -111,7 +111,7 @@ export default function LandingPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-dark-700/50 bg-dark-900/50 text-xs text-dark-300 mb-8"
           >
             <Fingerprint className="w-3 h-3 text-crisp-400" />
-            ChatGPT and Claude sound like everyone. Crisp sounds like you.
+            One doc in. Every format out. All in your voice.
           </motion.div>
 
           <motion.h1
@@ -120,8 +120,8 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6"
           >
-            AI writes for everyone.{" "}
-            <span className="gradient-text">Crisp writes like you.</span>
+            Drop one doc.{" "}
+            <span className="gradient-text">Get every format, in your voice.</span>
           </motion.h1>
 
           <motion.p
@@ -130,10 +130,11 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-base sm:text-lg md:text-xl text-dark-300 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed"
           >
-            Every AI tool gives you the same generic voice. Crisp learns
+            Humanizers smooth a few words. Crisp transforms one document into
+            exec briefs, emails, Slack messages, slide decks, and downloadable
+            docs — all rewritten in
             <em className="text-dark-100 not-italic font-medium"> your </em>
-            writing patterns, tone, and style — then transforms any AI
-            output or document into content that actually sounds like it came from you.
+            voice, for the right audience, in seconds.
           </motion.p>
 
           <motion.div
@@ -146,7 +147,7 @@ export default function LandingPage() {
               href="/app"
               className="group bg-gradient-to-r from-crisp-600 to-crisp-500 text-white px-8 py-4 rounded-2xl font-semibold text-sm shadow-lg shadow-crisp-500/25 hover:shadow-crisp-500/40 transition-all duration-300 flex items-center gap-2 glow"
             >
-              Make AI Sound Like You
+              Crisp It Free
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </a>
             <a
@@ -159,7 +160,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* The Problem — AI voice vs your voice */}
+      {/* The Problem — humanizers vs. Crisp */}
       <section id="the-problem" className="py-12 sm:py-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <motion.div
@@ -170,46 +171,55 @@ export default function LandingPage() {
             className="text-center mb-12 sm:mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              You can always <span className="gradient-text">tell</span>
+              Humanizers polish one text.{" "}
+              <span className="gradient-text">Crisp transforms it into six.</span>
             </h2>
             <p className="text-dark-400 text-lg max-w-2xl mx-auto">
-              When someone sends you a ChatGPT email, you know instantly. The words
-              are right but the voice is wrong. It reads like a robot wearing your
-              colleague&apos;s name tag.
+              AI humanizers give you back the same document with smoother words.
+              Crisp gives you an exec brief, an email, a Slack message, action
+              items, and a downloadable PDF — all shaped for different audiences, in
+              your voice.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
-            {/* Generic AI output */}
+            {/* Humanizer approach */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] p-5 sm:p-6"
+              className="rounded-2xl border border-dark-700/50 bg-dark-900/30 p-5 sm:p-6"
             >
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                  <span className="text-red-400 text-xs font-bold">AI</span>
+                <div className="w-6 h-6 rounded-lg bg-dark-700/50 border border-dark-600/30 flex items-center justify-center">
+                  <span className="text-dark-400 text-xs font-bold">H</span>
                 </div>
-                <span className="text-xs text-red-400/80 font-medium uppercase tracking-wider">
-                  What ChatGPT gives you
+                <span className="text-xs text-dark-500 font-medium uppercase tracking-wider">
+                  A typical humanizer
                 </span>
               </div>
-              <div className="text-sm text-dark-400 leading-relaxed space-y-3">
+              <div className="text-sm text-dark-500 leading-relaxed space-y-3">
                 <p>
-                  I hope this message finds you well. I wanted to provide a
-                  comprehensive update regarding our Q2 performance metrics. Based
-                  on a thorough analysis of cross-functional synergies and
-                  leveraging our multi-pronged strategic initiatives...
+                  Based on our analysis of Q2 market dynamics and leveraging
+                  cross-functional synergies, I recommend a multi-pronged
+                  approach to customer acquisition...
                 </p>
-                <p className="text-dark-600 italic text-xs">
-                  Sounds like every other AI email on the planet.
+                <div className="flex items-center gap-2 pt-2">
+                  <ArrowRight className="w-3 h-3 text-dark-600" />
+                  <span className="text-xs text-dark-600">Same text, slightly smoother</span>
+                </div>
+                <p>
+                  Based on our Q2 analysis and working across teams, I recommend
+                  a focused approach to customer acquisition...
+                </p>
+                <p className="text-dark-700 italic text-xs">
+                  One input, one output. Same format. Same audience.
                 </p>
               </div>
             </motion.div>
 
-            {/* Your voice through Crisp */}
+            {/* Crisp approach */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -222,17 +232,28 @@ export default function LandingPage() {
                   <Fingerprint className="w-3 h-3 text-crisp-400" />
                 </div>
                 <span className="text-xs text-crisp-400/80 font-medium uppercase tracking-wider">
-                  After Crisp (in your voice)
+                  Crisp
                 </span>
               </div>
-              <div className="text-sm text-dark-200 leading-relaxed space-y-3">
-                <p>
-                  Hey team — Q2 was solid but not where we need to be. Revenue
-                  hit $2.1M (up 18%) but churn crept to 4.2%. I want to fix
-                  that before it compounds. Three things to do this week:
+              <div className="text-sm leading-relaxed space-y-2.5">
+                <p className="text-dark-200">
+                  <span className="text-crisp-400/80 text-xs font-medium mr-1.5">CEO Brief:</span>
+                  Q2 revenue hit $2.1M, churn crept to 4.2%. Three things to fix this week.
                 </p>
-                <p className="text-crisp-400/60 italic text-xs">
-                  Sounds like you actually wrote it.
+                <p className="text-dark-200">
+                  <span className="text-blue-400/80 text-xs font-medium mr-1.5">Email:</span>
+                  Hey Sarah — quick one on Q2. Three things jumped out...
+                </p>
+                <p className="text-dark-200">
+                  <span className="text-amber-400/80 text-xs font-medium mr-1.5">Slack:</span>
+                  heads up — reviewed the Q2 doc, few things to flag before friday
+                </p>
+                <p className="text-dark-200">
+                  <span className="text-emerald-400/80 text-xs font-medium mr-1.5">Actions:</span>
+                  - Lock pricing by Thursday (Jake) - Pull churn data for board deck
+                </p>
+                <p className="text-crisp-400/60 italic text-xs mt-3">
+                  One input, six outputs. Different formats, audiences, and tones. All you.
                 </p>
               </div>
             </motion.div>
@@ -255,14 +276,16 @@ export default function LandingPage() {
                 Voice DNA
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-                Crisp doesn&apos;t guess your voice.{" "}
-                <span className="gradient-text">It learns it.</span>
+                Deeper than a 200-word sample.{" "}
+                <span className="gradient-text">Voice DNA.</span>
               </h2>
               <p className="text-dark-400 text-base mb-6 leading-relaxed">
-                Paste a few writing samples or record yourself talking for 30 seconds.
-                Crisp analyzes your sentence patterns, vocabulary, tone, punctuation
-                habits, and even your email sign-offs. Every output is shaped by
-                your actual style — not a generic &ldquo;professional&rdquo; template.
+                Other tools ask for one writing sample and call it a day.
+                Crisp builds a full voice fingerprint from multiple samples,
+                voice recordings, and your actual edits. It tracks your
+                sentence rhythm, vocabulary, punctuation habits, greeting
+                style, and sign-offs — then gets
+                <em className="text-dark-200 not-italic font-medium"> sharper every time you correct an output.</em>
               </p>
               <div className="space-y-3">
                 {[
@@ -343,7 +366,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Three steps to <span className="gradient-text">sounding like you</span>
+              Three steps. <span className="gradient-text">Six outputs. Your voice.</span>
             </h2>
           </motion.div>
 
@@ -875,18 +898,18 @@ export default function LandingPage() {
           className="max-w-3xl mx-auto text-center"
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-            AI gave you the words.{" "}
-            <span className="gradient-text">You deserve the voice.</span>
+            Stop smoothing one doc by hand.{" "}
+            <span className="gradient-text">Transform it into six.</span>
           </h2>
           <p className="text-dark-400 text-lg mb-8 max-w-lg mx-auto">
-            Stop sending content that sounds like it came from a machine. Make every
-            email, doc, and message unmistakably yours.
+            One document in. Exec brief, email, Slack message, action items,
+            DOCX, and PDF out. All in your voice, all in seconds.
           </p>
           <a
             href="/app"
             className="group inline-flex items-center gap-2 bg-gradient-to-r from-crisp-600 to-crisp-500 text-white px-10 py-4 rounded-2xl font-semibold text-sm shadow-lg shadow-crisp-500/25 hover:shadow-crisp-500/40 transition-all duration-300 glow"
           >
-            Make AI Sound Like You
+            Crisp It Free
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </a>
         </motion.div>
