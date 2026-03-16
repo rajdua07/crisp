@@ -151,7 +151,7 @@ export default function LandingPage() {
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </a>
             <a
-              href="#the-problem"
+              href="/try"
               className="text-dark-300 hover:text-dark-100 px-8 py-4 rounded-2xl font-medium text-sm border border-dark-700/50 hover:border-dark-600/50 bg-dark-900/30 hover:bg-dark-800/50 transition-all"
             >
               See the difference
