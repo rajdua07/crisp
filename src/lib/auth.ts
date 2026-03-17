@@ -1,15 +1,25 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "./prisma";
 import { DEFAULT_AUDIENCES } from "./store";
 
+const hasClerk = !!process.env.CLERK_SECRET_KEY;
+
 /**
  * Get or create the DB user for the current Clerk session.
- * Call this in any authenticated API route.
+ * Falls back to a local dev user when Clerk is not configured.
  */
 export async function getOrCreateUser() {
-  const { userId: clerkId } = await auth();
-  if (!clerkId) {
-    throw new Error("Unauthorized");
+  let clerkId: string;
+
+  if (hasClerk) {
+    const { auth } = await import("@clerk/nextjs/server");
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+    clerkId = userId;
+  } else {
+    // Dev mode — use a stable local user id
+    clerkId = "local_dev_user";
   }
 
   // Try to find existing user
@@ -18,9 +28,13 @@ export async function getOrCreateUser() {
   });
 
   if (!user) {
-    // First time — create user + seed default audiences
-    const clerkUser = await currentUser();
-    const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
+    let email = "dev@localhost";
+
+    if (hasClerk) {
+      const { currentUser } = await import("@clerk/nextjs/server");
+      const clerkUser = await currentUser();
+      email = clerkUser?.emailAddresses[0]?.emailAddress || "";
+    }
 
     user = await prisma.user.create({
       data: {
