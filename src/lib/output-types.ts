@@ -55,22 +55,22 @@ Rules:
     slug: "action_items",
     name: "Action Items",
     icon: "check-square",
-    description: "Bulleted task list with owners and deadlines",
-    instructions: `Extract a prioritized action item list using the format: Verb + Object + Owner + Deadline.
+    description: "Bulleted task list with owners",
+    instructions: `Extract a prioritized action item list using the format: Verb + Object + Owner.
 
 Format each item as:
-- [Verb] [specific thing] - [Owner] by [Deadline]
+- [Verb] [specific thing] - [Owner]
 
-Example: "Lock in Q3 pricing - Jake by Thursday EOD"
+Example: "Lock in Q3 pricing - Jake"
 
 Rules:
 - Every item starts with a concrete verb: "Ship", "Review", "Schedule", "Decide", "Cut", "Hire." Never "Consider" or "Think about."
-- If the input doesn't specify owners, use [OWNER?]. If no deadline, use [BY WHEN?]. Flagging gaps IS the value.
+- If the input doesn't specify owners, use [OWNER?]. Flagging gaps IS the value.
 - Max 7 items. If you extract more, ruthlessly cut or combine. The reader should feel this is the complete list, not a brain dump.
 - Order by priority/urgency, not by how they appeared in the input.
 - Group related items if logical (e.g., "Revenue" and "Churn" items together).
 - Each item must be independently actionable - someone should be able to do it without reading the original document.
-- If an item is vague in the original ("improve customer experience"), make it specific or flag it: "**Define 3 specific CX improvements** - [OWNER?] by [BY WHEN?] (original was vague)"`,
+- If an item is vague in the original ("improve customer experience"), make it specific or flag it: "Define 3 specific CX improvements - [OWNER?] (original was vague)"`,
   },
   {
     slug: "slack_message",
