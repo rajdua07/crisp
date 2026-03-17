@@ -78,6 +78,7 @@ ${voiceProfileJson ? "- Match the voice profile EXACTLY - mimic sentence length,
 - Do not use generic AI language like "leverage", "synergy", "circle back", "deep dive"
 - NEVER use em dashes (—). Always use regular hyphens (-) instead. This is critical.
 - Do not use overly polished or "AI-sounding" phrasing. Write like a real human.
+- NEVER use markdown formatting like **bold**, *italic*, or ## headers in the output. The output will be displayed as plain text. Use UPPERCASE or spacing for emphasis instead.
 ${voiceProfileJson ? "- Use the user's preferred vocabulary, not generic AI language\n- Match their punctuation style, greeting style, and structural preferences" : "- Write in a natural, human voice"}
 ${audienceContext ? "- Tailor the content specifically for this audience - adjust jargon, detail level, and tone accordingly" : ""}
 

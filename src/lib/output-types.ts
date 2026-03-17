@@ -59,9 +59,9 @@ Rules:
     instructions: `Extract a prioritized action item list using the format: Verb + Object + Owner + Deadline.
 
 Format each item as:
-- **[Verb] [specific thing]** - [Owner] by [Deadline]
+- [Verb] [specific thing] - [Owner] by [Deadline]
 
-Example: "**Lock in Q3 pricing** - Jake by Thursday EOD"
+Example: "Lock in Q3 pricing - Jake by Thursday EOD"
 
 Rules:
 - Every item starts with a concrete verb: "Ship", "Review", "Schedule", "Decide", "Cut", "Hire." Never "Consider" or "Think about."
@@ -81,7 +81,7 @@ Rules:
 
 Structure:
 Line 1: The headline. What's happening and why the reader cares. No "Hi team" or "Quick update."
-Line 2-3: The key details, separated by line breaks. Use bold (**text**) for names, numbers, or emphasis.
+Line 2-3: The key details, separated by line breaks. Use CAPS for emphasis on key names, numbers, or urgent items.
 Last line: The ask or next step. "Need eyes on this by 3pm" or "LMK if questions."
 
 Rules:
@@ -105,22 +105,22 @@ export const ALL_OUTPUT_TYPES: OutputType[] = [
     instructions: `Frame the decision using the Amazon-style "disagree and commit" format. The goal is to get to a decision in one read.
 
 Structure:
-**The decision:** [Frame as a specific, binary or ternary question]
+THE DECISION: [Frame as a specific, binary or ternary question]
 
-**Option A: [Name it]**
+Option A: [Name it]
 - What it is (1 sentence)
 - Upside: [specific benefit with number if possible]
 - Downside: [specific risk or cost]
 - Reversibility: [easy to undo / hard to undo / one-way door]
 
-**Option B: [Name it]**
+Option B: [Name it]
 [Same format]
 
-**Option C (if applicable): [Name it]**
+Option C (if applicable): [Name it]
 [Same format]
 
-**Recommendation:** [Pick one and say why in 1-2 sentences. Be opinionated.]
-**Decision needed by:** [Extract from context or flag as [DATE?]]
+RECOMMENDATION: [Pick one and say why in 1-2 sentences. Be opinionated.]
+DECISION NEEDED BY: [Extract from context or flag as [DATE?]]
 
 Rules:
 - The decision question must be specific enough that someone can answer "A" or "B" and everyone knows what happens next.
@@ -177,14 +177,14 @@ Rules:
     instructions: `Write a polished, external-facing one-pager suitable for clients, investors, or partners.
 
 Structure:
-**[Headline]** - A clear statement of value or finding (not "Overview" or "Summary")
+[HEADLINE] - A clear statement of value or finding (not "Overview" or "Summary")
 
 [Opening paragraph: 2-3 sentences. What this is and why it matters to the reader. Write from their perspective, not yours.]
 
-**Key Points**
+KEY POINTS
 - [3-5 bullets, each 1-2 sentences. Lead with the insight, follow with evidence.]
 
-**Next Steps**
+NEXT STEPS
 [1-2 sentences. What happens now and who does what.]
 
 Rules:
@@ -201,7 +201,7 @@ Rules:
     description: "LinkedIn + Twitter ready",
     instructions: `Write a LinkedIn post that follows the "hook-story-insight-CTA" framework used by top creators.
 
-**LinkedIn version:**
+LinkedIn version:
 
 Line 1: Hook - a bold claim, surprising stat, or pattern interrupt. This is the only line visible before "see more." Make it count.
 
@@ -219,7 +219,7 @@ Last line: Engagement prompt. A specific question, not "What do you think?" Bett
 
 ---
 
-**Twitter/X version (under 280 chars):**
+Twitter/X version (under 280 chars):
 [Same core insight, compressed. Lead with the most shareable line. No hashtags unless they add real context.]
 
 Rules:
@@ -313,7 +313,7 @@ Use markdown headers (## Section Title). Follow this structure:
 
 ## Key Findings
 [3-5 findings, each as a bold statement followed by 1-2 sentences of evidence. Format:]
-**Finding 1: [Claim with number]**
+Finding 1: [Claim with number]
 [Supporting evidence and context.]
 
 ## Detailed Analysis
@@ -323,8 +323,8 @@ Use markdown headers (## Section Title). Follow this structure:
 [What could go wrong? 2-3 risks with likelihood and mitigation. Only include if the content warrants it.]
 
 ## Recommendations
-1. **[Action]** - [Expected impact] - [Timeline]
-2. **[Action]** - [Expected impact] - [Timeline]
+1. [Action] - [Expected impact] - [Timeline]
+2. [Action] - [Expected impact] - [Timeline]
 
 ## Appendix (if needed)
 [Supporting data, methodology notes, or definitions. Only if the content is technical.]
