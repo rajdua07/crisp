@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getOrCreateUser } from "@/lib/auth";
+import { AI_CRUTCH_RULES } from "@/lib/prompts";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -44,9 +45,11 @@ ${instruction}
 - Apply the user's instruction precisely
 - Keep the same general format and output type (${output_type})
 - NEVER use em dashes (—). Always use regular hyphens (-) instead.
-- Do not use generic AI language ("leverage", "synergy", "deep dive")
 - Write naturally like a real human
-- Return ONLY the tweaked content, no meta-commentary or explanations`,
+- Return ONLY the tweaked content, no meta-commentary or explanations
+
+=== AI CRUTCH ELIMINATION ===
+${AI_CRUTCH_RULES}`,
         },
       ],
     });

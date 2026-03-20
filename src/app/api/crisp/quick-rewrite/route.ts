@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getOrCreateUser, getPlanLimits } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { AI_CRUTCH_RULES } from "@/lib/prompts";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -59,14 +60,16 @@ ${voiceJson ? `=== VOICE PROFILE ===\n${voiceJson}\n` : ""}
 ${contextHint}
 
 === RULES ===
-${voiceJson ? "- Match the voice profile EXACTLY — sentence length, vocabulary, tone, structure" : "- Write in a natural, direct human voice. No AI-speak."}
+${voiceJson ? "- Match the voice profile EXACTLY - sentence length, vocabulary, tone, structure" : "- Write in a natural, direct human voice. No AI-speak."}
 - Keep the same core meaning and information
 - Never add information not in the original
-- No generic AI language: "leverage", "synergy", "comprehensive", "in today's landscape"
 - NEVER use em dashes (—). Use hyphens (-) instead.
 - Be concise. Humans don't over-explain.
 - If the original is an email, keep email format. If it's a message, keep it casual.
 ${voiceJson ? "- Use the user's preferred greetings, sign-offs, and punctuation habits" : ""}
+
+=== AI CRUTCH ELIMINATION ===
+${AI_CRUTCH_RULES}
 
 === TEXT TO REWRITE ===
 ${input_text}

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getOrCreateUser } from "@/lib/auth";
+import { AI_CRUTCH_RULES } from "@/lib/prompts";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
@@ -20,10 +21,12 @@ const ENRICH_PROMPT = `You are an expert content enhancer. The user pasted AI-ge
 - Keep the same general topic and intent
 - Do NOT change the length dramatically - enrich depth, not volume
 - Do NOT use em dashes (—). Use regular hyphens (-) instead.
-- Do NOT use generic AI language ("leverage", "synergy", "deep dive", "circle back")
 - Write like a smart human, not a corporate AI
 - Focus your enrichment on the dimensions that scored lowest
 - Preserve any good parts of the original
+
+=== AI CRUTCH ELIMINATION ===
+${AI_CRUTCH_RULES}
 
 === ORIGINAL CONTENT ===
 {input_text}

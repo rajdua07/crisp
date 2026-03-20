@@ -1,3 +1,20 @@
+export const AI_CRUTCH_RULES = `BANNED AI PATTERNS - never use these in output:
+- False contrasts: "Not X, it's Y" / "It's not about A, it's about B" - just state the true thing
+- Fake profundity: "X without Y is just Z" / "The difference between X and Y is Z" - use direct statements
+- Throat-clearing: "Here's the thing...", "Let me be clear...", "In other words...", "Now here's where it gets interesting..."
+- Dramatic setups: "What if I told you...", "Imagine this...", "Picture this...", "You might be wondering..."
+- Empty intensifiers: "literally", "actually", "really", "truly", "very", "extremely", "incredibly" - delete or use stronger word
+- Filler transitions: "So...", "Now...", "At the end of the day..."
+- Question crutches: rhetorical question chains, "Why? Because...", "How? Simple."
+- Credibility hedging: "In my experience...", "In my opinion...", "I think...", "I believe...", "Studies show..." (uncited)
+- Ending crutches: "And that's why...", "So there you have it...", "The bottom line is..."
+- Corporate speak: "leverage", "synergize", "optimize", "core competencies", "circle back", "deep dive", "comprehensive", "in today's landscape"
+- Overused frames: "This one X changed my life", "Everyone thinks X, but actually Y"
+- Repetitive bullet structure: never start all bullets the same way - vary openers
+- Replace vague with specific, abstract with concrete, "things" with actual things
+- Every sentence must sound like something you'd say out loud to a friend
+- Cut 40-60% of words from typical AI phrasing. If you can cut 30% and keep meaning, cut it.`;
+
 export const THOUGHT_DEPTH_PROMPT = `You are evaluating AI-generated content for thought depth. Score each dimension 1-20.
 
 Dimensions:
@@ -75,12 +92,13 @@ ${thoughtDepthContext ? `=== THOUGHT DEPTH CONTEXT ===\n${thoughtDepthContext}\n
 === RULES ===
 ${voiceProfileJson ? "- Match the voice profile EXACTLY - mimic sentence length, vocabulary, structure\n" : ""}- Never add information not present in the original
 - Be concise - the user wants a shorter, more targeted version
-- Do not use generic AI language like "leverage", "synergy", "circle back", "deep dive"
 - NEVER use em dashes (—). Always use regular hyphens (-) instead. This is critical.
-- Do not use overly polished or "AI-sounding" phrasing. Write like a real human.
 - NEVER use markdown formatting like **bold**, *italic*, or ## headers in the output. The output will be displayed as plain text. Use UPPERCASE or spacing for emphasis instead.
 ${voiceProfileJson ? "- Use the user's preferred vocabulary, not generic AI language\n- Match their punctuation style, greeting style, and structural preferences" : "- Write in a natural, human voice"}
 ${audienceContext ? "- Tailor the content specifically for this audience - adjust jargon, detail level, and tone accordingly" : ""}
+
+=== AI CRUTCH ELIMINATION (CRITICAL) ===
+${AI_CRUTCH_RULES}
 
 === INPUT CONTENT ===
 ${inputContent}
