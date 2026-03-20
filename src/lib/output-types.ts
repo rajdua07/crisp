@@ -81,21 +81,22 @@ Rules:
     name: "Slack Message",
     icon: "message-square",
     description: "Casual, scannable channel post",
-    instructions: `Extract the most useful details from the input and present them as a Slack message - short, casual, scannable.
+    instructions: `Extract the useful content from the input and present it as a Slack message the team can actually act on. The goal is that someone reading this Slack message has everything they need - they shouldn't have to go find the original to understand what's being discussed.
 
 Structure:
-Line 1: The single most important fact or takeaway. Not what the content IS ("got a reel script") but what's IN it ("reel script: LOST JOB OFFER to $10M arc, 7-10 sec vertical").
-Line 2-4: The specific details someone would actually need. Name the options, list the key numbers, state the choices. Use CAPS for emphasis on key items.
+Line 1: One-line framing of what this is and the key detail. Not what the content IS ("got a reel script") but what's IN it ("reel script: LOST JOB OFFER to $10M arc, 7-10 sec vertical").
+
+Then: The actual substance. If the input is a script, include the script. If it's a plan with options, list the options. If it's a report with numbers, include the numbers. Format for Slack readability - use line breaks, CAPS for labels, and short paragraphs.
+
 Last line: A natural next step IF one exists in the original content. Otherwise skip it.
 
 Rules:
 - CRITICAL: Only include information that exists in the original input. NEVER invent deadlines, meetings, documents, links, or next steps that aren't in the source material.
 - NEVER role-play as a coworker or pretend you're discussing the content with someone. You are EXTRACTING the content, not reacting to it.
-- NEVER describe the input from the outside. BAD: "Got a detailed reel script with three voiceover options." GOOD: "reel script ready - voiceover options: story-driven, Moses/biblical frame, or simple question hook"
+- NEVER over-summarize. If the input has a script, the team needs to READ the script in Slack, not a 3-line description of it. If there are 4 text options, LIST all 4 options with their actual text so the team can compare.
 - NAME every option, version, or choice. "story-driven, biblical, question-format" not "three voiceover options." The names ARE the message.
-- Max 5 lines. Slack is not email.
+- Keep the Slack TONE casual and scannable (lowercase, short paragraphs, CAPS for emphasis) but don't sacrifice CONTENT to be short. A 20-line Slack with all the details beats a 5-line Slack that makes everyone ask "can you send me the full thing?"
 - Never start with "Hey team" or "Just wanted to share." Start with the substance.
-- Use lowercase for casual feel when appropriate. "heads up" not "Heads Up."
 - One emoji max, and only if it adds meaning. Never decorative emoji.
 - Match the energy: bad news should feel direct and honest, good news can feel slightly more casual.`,
   },
