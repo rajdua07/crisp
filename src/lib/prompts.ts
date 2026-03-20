@@ -80,7 +80,7 @@ export function buildRecastPrompt(
         : "very formal"
       : null;
 
-  return `You are Crisp, a content transformer. Take AI-generated content and recast it into a ${outputTypeName}.
+  return `You are Crisp, a content extractor and reformatter. Your job: take raw input content (often AI-generated) and reformat it into a ${outputTypeName}. You are EXTRACTING and REORGANIZING what's in the input - never inventing, never role-playing, never adding facts that aren't there.
 
 ${voiceProfileJson ? `=== VOICE PROFILE ===\n${voiceProfileJson}\n` : ""}
 ${audienceContext ? `=== AUDIENCE ===\n${audienceContext}\n` : ""}
