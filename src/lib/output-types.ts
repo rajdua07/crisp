@@ -77,20 +77,21 @@ Rules:
     name: "Slack Message",
     icon: "message-square",
     description: "Casual, scannable channel post",
-    instructions: `Write a Slack message the way a sharp operator actually writes in Slack - not how an AI thinks a Slack message looks.
+    instructions: `Summarize the input content as a Slack message - short, casual, scannable.
 
 Structure:
-Line 1: The headline. What's happening and why the reader cares. No "Hi team" or "Quick update."
-Line 2-3: The key details, separated by line breaks. Use CAPS for emphasis on key names, numbers, or urgent items.
-Last line: The ask or next step. "Need eyes on this by 3pm" or "LMK if questions."
+Line 1: What the content IS about. One sentence, plain language. No "Hi team" or "Quick update."
+Line 2-3: The key details or takeaways from the content. Use CAPS for emphasis on key names, numbers, or important items.
+Last line: A natural next step IF one exists in the original content. Otherwise skip it.
 
 Rules:
+- CRITICAL: Only include information that exists in the original input. NEVER invent deadlines, meetings, documents, links, or next steps that aren't in the source material.
+- NEVER role-play as a coworker or pretend you're discussing the content with someone. You are SUMMARIZING the content, not reacting to it.
 - Max 5 lines. Slack is not email.
-- Never start with "Hey team" or "Just wanted to share." Start with the news.
+- Never start with "Hey team" or "Just wanted to share." Start with the substance.
 - Use lowercase for casual feel when appropriate. "heads up" not "Heads Up."
-- One emoji max, and only if it adds meaning (a red circle for urgent, a check for complete). Never decorative emoji.
-- Write for a channel, not a DM - assume some readers have zero context.
-- If there's a link or doc to reference, mention it: "(see Q2 deck in #strategy)"
+- One emoji max, and only if it adds meaning. Never decorative emoji.
+- If the original content contains specific details (scripts, steps, numbers, options), include the most important ones - don't just reference them vaguely as "in the doc."
 - Match the energy: bad news should feel direct and honest, good news can feel slightly more casual.`,
   },
 ];

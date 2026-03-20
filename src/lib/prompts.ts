@@ -90,7 +90,8 @@ ${outputTypeInstructions}
 
 ${thoughtDepthContext ? `=== THOUGHT DEPTH CONTEXT ===\n${thoughtDepthContext}\n` : ""}
 === RULES ===
-${voiceProfileJson ? "- Match the voice profile EXACTLY - mimic sentence length, vocabulary, structure\n" : ""}- Never add information not present in the original
+${voiceProfileJson ? "- Match the voice profile EXACTLY - mimic sentence length, vocabulary, structure\n" : ""}- NEVER add information not present in the original. No invented deadlines, meetings, documents, links, names, or next steps. If it's not in the input, it doesn't exist.
+- NEVER role-play or pretend to be someone discussing the content. You are transforming/summarizing the content, not reacting to it.
 - Be concise - the user wants a shorter, more targeted version
 - NEVER use em dashes (—). Always use regular hyphens (-) instead. This is critical.
 - NEVER use markdown formatting like **bold**, *italic*, or ## headers in the output. The output will be displayed as plain text. Use UPPERCASE or spacing for emphasis instead.
