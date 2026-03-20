@@ -81,21 +81,22 @@ Rules:
     name: "Slack Message",
     icon: "message-square",
     description: "Casual, scannable channel post",
-    instructions: `Summarize the input content as a Slack message - short, casual, scannable.
+    instructions: `Extract the most useful details from the input and present them as a Slack message - short, casual, scannable.
 
 Structure:
-Line 1: What the content IS about. One sentence, plain language. No "Hi team" or "Quick update."
-Line 2-3: The key details or takeaways from the content. Use CAPS for emphasis on key names, numbers, or important items.
+Line 1: The single most important fact or takeaway. Not what the content IS ("got a reel script") but what's IN it ("reel script: LOST JOB OFFER to $10M arc, 7-10 sec vertical").
+Line 2-4: The specific details someone would actually need. Name the options, list the key numbers, state the choices. Use CAPS for emphasis on key items.
 Last line: A natural next step IF one exists in the original content. Otherwise skip it.
 
 Rules:
 - CRITICAL: Only include information that exists in the original input. NEVER invent deadlines, meetings, documents, links, or next steps that aren't in the source material.
-- NEVER role-play as a coworker or pretend you're discussing the content with someone. You are SUMMARIZING the content, not reacting to it.
+- NEVER role-play as a coworker or pretend you're discussing the content with someone. You are EXTRACTING the content, not reacting to it.
+- NEVER describe the input from the outside. BAD: "Got a detailed reel script with three voiceover options." GOOD: "reel script ready - voiceover options: story-driven, Moses/biblical frame, or simple question hook"
+- NAME every option, version, or choice. "story-driven, biblical, question-format" not "three voiceover options." The names ARE the message.
 - Max 5 lines. Slack is not email.
 - Never start with "Hey team" or "Just wanted to share." Start with the substance.
 - Use lowercase for casual feel when appropriate. "heads up" not "Heads Up."
 - One emoji max, and only if it adds meaning. Never decorative emoji.
-- If the original content contains specific details (scripts, steps, numbers, options), include the most important ones - don't just reference them vaguely as "in the doc."
 - Match the energy: bad news should feel direct and honest, good news can feel slightly more casual.`,
   },
 ];
@@ -246,7 +247,7 @@ Rules:
 Rules:
 - Each message under 160 characters.
 - No greeting, no sign-off. Just start with the substance.
-- Use lowercase if it fits the tone. "reel script is ready - 4 text options, 3 voiceover versions" not formal casing.
+- Use lowercase if it fits the tone. "reel script ready - story-driven or biblical voiceover, lost job to $10M arc" not formal casing.
 - Contractions always. "can't" not "cannot."
 - Break grammar rules if it sounds more natural.
 - First message: the core point from the input. Second message: key detail (only if needed). Third message: next step ONLY if one exists in the input.

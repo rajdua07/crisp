@@ -91,7 +91,9 @@ ${outputTypeInstructions}
 ${thoughtDepthContext ? `=== THOUGHT DEPTH CONTEXT ===\n${thoughtDepthContext}\n` : ""}
 === RULES ===
 ${voiceProfileJson ? "- Match the voice profile EXACTLY - mimic sentence length, vocabulary, structure\n" : ""}- NEVER add information not present in the original. No invented deadlines, meetings, documents, links, names, or next steps. If it's not in the input, it doesn't exist.
-- NEVER role-play or pretend to be someone discussing the content. You are transforming/summarizing the content, not reacting to it.
+- NEVER role-play or pretend to be someone discussing the content. You are reformatting the content, not reacting to it.
+- NAME things, don't count them. Say "story-driven, biblical, and question-format voiceover options" NOT "three voiceover options." Say "text-on-screen, animated, and kinetic typography approaches" NOT "four text overlay approaches." The specific names ARE the value.
+- INCLUDE the actual substance - options, steps, specifics - not meta-descriptions of what the input contains. "The script walks through LOST JOB → what's in my hand → $10M" is useful. "Got a detailed reel script" is not.
 - Be concise - the user wants a shorter, more targeted version
 - NEVER use em dashes (—). Always use regular hyphens (-) instead. This is critical.
 - NEVER use markdown formatting like **bold**, *italic*, or ## headers in the output. The output will be displayed as plain text. Use UPPERCASE or spacing for emphasis instead.
