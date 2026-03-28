@@ -10,40 +10,58 @@ export async function POST(request: Request) {
   try {
     await getOrCreateUser();
 
-    const formData = await request.formData();
-    const audioFile = formData.get("audio") as File;
+    const contentType = request.headers.get("content-type") || "";
 
-    if (!audioFile) {
-      return Response.json({ error: "Audio file is required" }, { status: 400 });
-    }
+    let transcript: string;
 
-    // Transcribe with Whisper
-    if (!process.env.OPENAI_API_KEY) {
-      return Response.json({ error: "OPENAI_API_KEY not configured for transcription" }, { status: 500 });
-    }
+    if (contentType.includes("application/json")) {
+      // Browser-side transcription via Web Speech API - transcript sent directly
+      const body = await request.json();
+      transcript = body.transcript;
 
-    const audioFormData = new FormData();
-    audioFormData.append("file", audioFile);
-    audioFormData.append("model", "whisper-1");
-    audioFormData.append("language", "en");
-
-    const whisperResponse = await fetch(
-      "https://api.openai.com/v1/audio/transcriptions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: audioFormData,
+      if (!transcript || transcript.trim().length === 0) {
+        return Response.json({ error: "Transcript is empty" }, { status: 400 });
       }
-    );
+    } else {
+      // Fallback: audio file upload with OpenAI Whisper
+      const formData = await request.formData();
+      const audioFile = formData.get("audio") as File;
 
-    if (!whisperResponse.ok) {
-      const err = await whisperResponse.text();
-      return Response.json({ error: `Transcription failed: ${err}` }, { status: 500 });
+      if (!audioFile) {
+        return Response.json({ error: "Audio file is required" }, { status: 400 });
+      }
+
+      if (!process.env.OPENAI_API_KEY) {
+        return Response.json(
+          { error: "Voice transcription is not available. Please use browser-based recording instead." },
+          { status: 500 }
+        );
+      }
+
+      const audioFormData = new FormData();
+      audioFormData.append("file", audioFile);
+      audioFormData.append("model", "whisper-1");
+      audioFormData.append("language", "en");
+
+      const whisperResponse = await fetch(
+        "https://api.openai.com/v1/audio/transcriptions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: audioFormData,
+        }
+      );
+
+      if (!whisperResponse.ok) {
+        const err = await whisperResponse.text();
+        return Response.json({ error: `Transcription failed: ${err}` }, { status: 500 });
+      }
+
+      const result = await whisperResponse.json();
+      transcript = result.text;
     }
-
-    const { text: transcript } = await whisperResponse.json();
 
     // Analyze voice patterns from transcript
     const response = await anthropic.messages.create({

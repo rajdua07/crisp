@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mic,
@@ -34,6 +34,17 @@ interface CategorizedSample {
   category: SampleCategory;
 }
 
+function useSpeechRecognitionSupport(): boolean {
+  const [supported, setSupported] = useState(false);
+  useEffect(() => {
+    setSupported(
+      typeof window !== "undefined" &&
+        ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+    );
+  }, []);
+  return supported;
+}
+
 export function VoiceProfileEditor() {
   const {
     voiceProfiles,
@@ -43,17 +54,26 @@ export function VoiceProfileEditor() {
     user,
   } = useAppStore();
 
+  const speechSupported = useSpeechRecognitionSupport();
+
   const [activeTab, setActiveTab] = useState<"samples" | "record">("samples");
   const [samples, setSamples] = useState<CategorizedSample[]>([{ text: "", category: "email" }]);
   const [profileName, setProfileName] = useState("Personal Voice");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [interimText, setInterimText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Web Speech API refs
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // MediaRecorder fallback refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const addSample = () => setSamples([...samples, { text: "", category: "email" }]);
   const removeSample = (index: number) =>
@@ -113,7 +133,117 @@ export function VoiceProfileEditor() {
     }
   };
 
-  const startRecording = async () => {
+  // Submit transcript (from either Speech API or Whisper) for voice analysis
+  const analyzeTranscript = useCallback(async (transcript: string) => {
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/voice-profile/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Analysis failed");
+      }
+
+      const { profileData, transcript: returnedTranscript } = await res.json();
+
+      const profile: VoiceProfile = {
+        id: uuidv4(),
+        name: profileName,
+        source: "voice",
+        profileData,
+        writingSamples: [],
+        voiceTranscript: returnedTranscript,
+        isDefault: voiceProfiles.length === 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      addVoiceProfile(profile);
+      setSuccess(`"${profileName}" voice profile created from recording!`);
+      setLiveTranscript("");
+      setInterimText("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Processing failed");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [profileName, voiceProfiles.length, addVoiceProfile]);
+
+  // --- Web Speech API recording ---
+  const startSpeechRecognition = useCallback(() => {
+    const SpeechRecognitionClass =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) return;
+
+    const recognition = new SpeechRecognitionClass();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    let finalTranscript = "";
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript + " ";
+          setLiveTranscript(finalTranscript.trim());
+        } else {
+          interim += result[0].transcript;
+        }
+      }
+      setInterimText(interim);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error !== "aborted") {
+        setError(`Speech recognition error: ${event.error}`);
+      }
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+
+    recognition.onend = () => {
+      // Speech API can stop on its own (silence timeout). If we're still
+      // "recording", restart it to keep capturing.
+      if (recognitionRef.current === recognition && isRecording) {
+        try {
+          recognition.start();
+        } catch {
+          // already stopped, ignore
+        }
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setLiveTranscript("");
+    setInterimText("");
+    setIsRecording(true);
+    setRecordingTime(0);
+    setError(null);
+    setSuccess(null);
+
+    timerRef.current = setInterval(() => {
+      setRecordingTime((t) => {
+        if (t >= 90) {
+          stopRecording();
+          return 90;
+        }
+        return t + 1;
+      });
+    }, 1000);
+  }, []);
+
+  // --- MediaRecorder fallback ---
+  const startMediaRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -127,12 +257,15 @@ export function VoiceProfileEditor() {
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        await processRecording(blob);
+        await processRecordingFallback(blob);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
+      setError(null);
+      setSuccess(null);
+
       timerRef.current = setInterval(() => {
         setRecordingTime((t) => {
           if (t >= 90) {
@@ -147,15 +280,7 @@ export function VoiceProfileEditor() {
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-  };
-
-  const processRecording = async (blob: Blob) => {
+  const processRecordingFallback = async (blob: Blob) => {
     setIsAnalyzing(true);
     setError(null);
 
@@ -195,6 +320,53 @@ export function VoiceProfileEditor() {
       setIsAnalyzing(false);
     }
   };
+
+  // --- Unified start/stop ---
+  const startRecording = () => {
+    if (speechSupported) {
+      startSpeechRecognition();
+    } else {
+      startMediaRecording();
+    }
+  };
+
+  const stopRecording = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsRecording(false);
+
+    // Stop Speech API
+    if (recognitionRef.current) {
+      const rec = recognitionRef.current;
+      recognitionRef.current = null;
+      rec.stop();
+    }
+
+    // Stop MediaRecorder (fallback)
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  // When recording stops via Speech API, auto-submit the transcript
+  const prevIsRecording = useRef(isRecording);
+  useEffect(() => {
+    if (prevIsRecording.current && !isRecording && !isAnalyzing) {
+      // Recording just stopped
+      if (speechSupported && liveTranscript.trim().length > 0) {
+        analyzeTranscript(liveTranscript.trim());
+      }
+    }
+    prevIsRecording.current = isRecording;
+  }, [isRecording, isAnalyzing, speechSupported, liveTranscript, analyzeTranscript]);
+
+  // Fix: stopRecording reference for timer callback
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (recognitionRef.current) recognitionRef.current.stop();
+    };
+  }, []);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -330,6 +502,14 @@ export function VoiceProfileEditor() {
               a recent project, or your strategy. Your spoken voice is often more
               natural and more &quot;you&quot; than writing.
             </p>
+
+            {!speechSupported && (
+              <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-xl px-4 py-3">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                Your browser doesn&apos;t support live transcription. Recording will be sent to server for processing.
+              </div>
+            )}
+
             <div className="flex flex-col items-center gap-4 py-6">
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -356,7 +536,7 @@ export function VoiceProfileEditor() {
                     {formatTime(recordingTime)}
                   </div>
                   <div className="text-xs text-dark-500 mt-1">
-                    {recordingTime < 60 ? "Keep talking..." : "Great length!"}
+                    {recordingTime < 60 ? "Keep talking..." : "Great length! Click to finish."}
                   </div>
                 </div>
               )}
@@ -367,10 +547,28 @@ export function VoiceProfileEditor() {
               )}
               {isAnalyzing && (
                 <p className="text-xs text-dark-400">
-                  Transcribing and analyzing...
+                  Analyzing voice patterns...
                 </p>
               )}
             </div>
+
+            {/* Live transcript preview (Speech API only) */}
+            {speechSupported && (isRecording || liveTranscript) && (
+              <div className="bg-dark-900/50 border border-dark-700/50 rounded-xl px-4 py-3 min-h-[80px] max-h-[160px] overflow-y-auto">
+                <div className="text-xs uppercase tracking-wider text-dark-500 mb-2">
+                  Live transcript
+                </div>
+                <p className="text-sm text-dark-200 leading-relaxed">
+                  {liveTranscript}
+                  {interimText && (
+                    <span className="text-dark-500">{interimText}</span>
+                  )}
+                  {isRecording && !liveTranscript && !interimText && (
+                    <span className="text-dark-600">Listening...</span>
+                  )}
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
