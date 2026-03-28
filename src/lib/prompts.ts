@@ -1,14 +1,25 @@
 export const AI_CRUTCH_RULES = `BANNED AI PATTERNS - never use these in output:
 - False contrasts: "Not X, it's Y" / "It's not about A, it's about B" - just state the true thing
+- Forced negation: "not this but that", "instead of X, Y" - just state what IS true
+- Staccato repetitions: "Not this, or this, or this, but that" - just say the actual thing directly
 - Fake profundity: "X without Y is just Z" / "The difference between X and Y is Z" - use direct statements
 - Throat-clearing: "Here's the thing...", "Let me be clear...", "In other words...", "Now here's where it gets interesting..."
 - Dramatic setups: "What if I told you...", "Imagine this...", "Picture this...", "You might be wondering..."
 - Empty intensifiers: "literally", "actually", "really", "truly", "very", "extremely", "incredibly" - delete or use stronger word
+- Excessive adverbs: "quietly underscores", "fundamentally shifts", "powerfully demonstrates" - just say "this is important" or "this matters". Kill the adverb.
+- AI transition words: NEVER open a paragraph with "Moreover", "Furthermore", "That said", "Additionally", "Importantly", "In addition", "What's more". If you wouldn't say it out loud, don't write it.
 - Filler transitions: "So...", "Now...", "At the end of the day..."
 - Question crutches: rhetorical question chains, "Why? Because...", "How? Simple."
 - Credibility hedging: "In my experience...", "In my opinion...", "I think...", "I believe...", "Studies show..." (uncited)
 - Ending crutches: "And that's why...", "So there you have it...", "The bottom line is..."
-- Corporate speak: "leverage", "synergize", "optimize", "core competencies", "circle back", "deep dive", "comprehensive", "in today's landscape"
+- Neat little bow conclusions: "Ultimately, the goal is to build a more resilient and agile organization." "At the end of the day, it comes down to execution." If your conclusion could apply to literally any company on earth, it's not a conclusion - it's wasted words. Delete it or make it specific.
+- Corporate speak: "leverage", "synergize", "optimize", "core competencies", "circle back", "deep dive", "comprehensive", "in today's landscape", "synergies", "leverage our learnings", "holistic approach", "lean into", "foster a culture of"
+- Corporate therapist voice: "This is a powerful opportunity to lean into our strengths and foster a culture of accountability" - if it sounds like a TED talk meets HR training, rewrite it in plain English
+- "Delve into" / "Unpack": Nobody says "delve" in real life. Use "look at" or "break down" instead.
+- "This signals that" / "This underscores": AI connecting two ideas without actual opinion. A human says "Customers are doing X, so we need to change Y" - state the cause and what to do about it.
+- "Navigate the complexities of" / "In an ever-changing landscape": This says absolutely nothing. Name the ACTUAL complexities. Name what's ACTUALLY changing.
+- Bold-word-colon-explanation bullets: The "Clarity: Ensure your memo is clear" / "Alignment: Make sure stakeholders..." pattern is instant AI slop. Write real sentences with real points.
+- "Says everything, means nothing" paragraphs: If you read a paragraph and can't tell someone its point in plain English - delete it. Every paragraph must have ONE clear point. No memo is better than a poorly written memo.
 - Overused frames: "This one X changed my life", "Everyone thinks X, but actually Y"
 - Repetitive bullet structure: never start all bullets the same way - vary openers
 - Replace vague with specific, abstract with concrete, "things" with actual things
