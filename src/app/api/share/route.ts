@@ -7,9 +7,13 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getOrCreateUser();
     const prisma = getPrisma();
-    const { sessionId, outputSlug, outputName, content } = await req.json();
+    const { sessionId, outputLabel, outputConfig, content } = await req.json();
 
-    if (!sessionId || !outputSlug || !content) {
+    // Support both old (outputSlug/outputName) and new (outputLabel/outputConfig) formats
+    const slug = outputConfig ? JSON.stringify(outputConfig) : "default";
+    const name = outputLabel || "Output";
+
+    if (!sessionId || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -23,11 +27,10 @@ export async function POST(req: NextRequest) {
 
     // Create or find existing share
     const existing = await prisma.sharedOutput.findFirst({
-      where: { userId: user.id, sessionId, outputSlug },
+      where: { userId: user.id, sessionId, outputSlug: slug },
     });
 
     if (existing) {
-      // Update content if changed
       const updated = await prisma.sharedOutput.update({
         where: { id: existing.id },
         data: { content },
@@ -39,8 +42,8 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         sessionId,
-        outputSlug,
-        outputName,
+        outputSlug: slug,
+        outputName: name,
         content,
       },
     });

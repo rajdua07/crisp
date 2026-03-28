@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { OutputConfig } from "@/lib/output-types";
 
 // ─── Audience ───
 export interface Audience {
@@ -84,36 +85,13 @@ export interface CrispSession {
   createdAt: string;
 }
 
-// ─── Templates ───
-export interface Template {
-  id: string;
-  name: string;
-  outputTypes: string[];
-  audienceId?: string;
-  toneFormality: number;
-  icon: string;
-  usageCount: number;
-}
-
 export interface SessionOutput {
   id: string;
-  outputTypeSlug: string;
-  outputTypeName: string;
+  outputConfig: OutputConfig;
   content: string;
   userEdits?: string;
   copied: boolean;
   voiceProfileId?: string;
-}
-
-// ─── Custom Output Types ───
-export interface CustomOutputType {
-  id: string;
-  name: string;
-  slug: string;
-  instructions: string;
-  icon: string;
-  defaultVoiceProfileId?: string;
-  sortOrder: number;
 }
 
 // ─── Integrations ───
@@ -195,19 +173,6 @@ interface AppState {
   getSession: (id: string) => CrispSession | undefined;
   toggleStarSession: (id: string) => void;
 
-  // Templates
-  templates: Template[];
-  setTemplates: (templates: Template[]) => void;
-  addTemplate: (template: Template) => void;
-  deleteTemplate: (id: string) => void;
-
-  // Custom output types
-  customOutputTypes: CustomOutputType[];
-  addCustomOutputType: (type: CustomOutputType) => void;
-  updateCustomOutputType: (id: string, updates: Partial<CustomOutputType>) => void;
-  deleteCustomOutputType: (id: string) => void;
-  reorderCustomOutputTypes: (types: CustomOutputType[]) => void;
-
   // Active state
   activeVoiceProfileId: string | null;
   setActiveVoiceProfileId: (id: string | null) => void;
@@ -215,6 +180,14 @@ interface AppState {
   setActiveAudienceId: (id: string | null) => void;
   toneFormality: number;
   setToneFormality: (value: number) => void;
+
+  // Output settings
+  selectedLengths: OutputConfig["length"][];
+  setSelectedLengths: (lengths: OutputConfig["length"][]) => void;
+  selectedFormat: OutputConfig["format"];
+  setSelectedFormat: (format: OutputConfig["format"]) => void;
+  humanify: boolean;
+  setHumanify: (value: boolean) => void;
 
   // Document Branding
   documentBranding: DocumentBranding;
@@ -224,10 +197,6 @@ interface AppState {
   integrations: Integrations;
   setIntegration: <K extends keyof Integrations>(key: K, value: Integrations[K]) => void;
   removeIntegration: (key: keyof Integrations) => void;
-
-  // Output type visibility/order preferences
-  enabledOutputTypes: string[];
-  setEnabledOutputTypes: (slugs: string[]) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -255,7 +224,6 @@ export const useAppStore = create<AppState>()(
             voiceProfiles: data.voiceProfiles,
             audiences: data.audiences,
             sessions: data.sessions,
-            customOutputTypes: data.customOutputTypes,
           });
         } catch {
           // If server hydration fails, keep using local data
@@ -331,31 +299,6 @@ export const useAppStore = create<AppState>()(
           ),
         })),
 
-      // ─── Templates ───
-      templates: [],
-      setTemplates: (templates) => set({ templates }),
-      addTemplate: (template) =>
-        set((s) => ({ templates: [...s.templates, template] })),
-      deleteTemplate: (id) =>
-        set((s) => ({ templates: s.templates.filter((t) => t.id !== id) })),
-
-      // ─── Custom Output Types ───
-      customOutputTypes: [],
-      addCustomOutputType: (type) =>
-        set((s) => ({ customOutputTypes: [...s.customOutputTypes, type] })),
-      updateCustomOutputType: (id, updates) =>
-        set((s) => ({
-          customOutputTypes: s.customOutputTypes.map((t) =>
-            t.id === id ? { ...t, ...updates } : t
-          ),
-        })),
-      deleteCustomOutputType: (id) =>
-        set((s) => ({
-          customOutputTypes: s.customOutputTypes.filter((t) => t.id !== id),
-        })),
-      reorderCustomOutputTypes: (types) =>
-        set({ customOutputTypes: types }),
-
       // ─── Document Branding ───
       documentBranding: DEFAULT_BRANDING,
       setDocumentBranding: (updates) =>
@@ -380,13 +323,13 @@ export const useAppStore = create<AppState>()(
       toneFormality: 0.5,
       setToneFormality: (value) => set({ toneFormality: value }),
 
-      enabledOutputTypes: [
-        "exec_brief",
-        "email_draft",
-        "action_items",
-        "slack_message",
-      ],
-      setEnabledOutputTypes: (slugs) => set({ enabledOutputTypes: slugs }),
+      // ─── Output settings ───
+      selectedLengths: ["medium"],
+      setSelectedLengths: (lengths) => set({ selectedLengths: lengths }),
+      selectedFormat: "default",
+      setSelectedFormat: (format) => set({ selectedFormat: format }),
+      humanify: false,
+      setHumanify: (value) => set({ humanify: value }),
     }),
     {
       name: "crisp-storage",
@@ -395,11 +338,9 @@ export const useAppStore = create<AppState>()(
 );
 
 // ─── Helpers ───
-export const PLAN_LIMITS: Record<Plan, { crispsPerMonth: number; maxVoiceProfiles: number; maxOutputTypes: number; hasChain: boolean; hasCustomTypes: boolean; hasCalibration: boolean; maxAudiences: number }> = {
-  free: { crispsPerMonth: 10, maxVoiceProfiles: 1, maxOutputTypes: 3, hasChain: false, hasCustomTypes: false, hasCalibration: false, maxAudiences: 3 },
-  pro: { crispsPerMonth: Infinity, maxVoiceProfiles: 3, maxOutputTypes: 8, hasChain: true, hasCustomTypes: true, hasCalibration: true, maxAudiences: Infinity },
-  team: { crispsPerMonth: Infinity, maxVoiceProfiles: 10, maxOutputTypes: 20, hasChain: true, hasCustomTypes: true, hasCalibration: true, maxAudiences: Infinity },
-  enterprise: { crispsPerMonth: Infinity, maxVoiceProfiles: Infinity, maxOutputTypes: Infinity, hasChain: true, hasCustomTypes: true, hasCalibration: true, maxAudiences: Infinity },
+export const PLAN_LIMITS: Record<Plan, { crispsPerMonth: number; maxVoiceProfiles: number; hasChain: boolean; hasCalibration: boolean; maxAudiences: number }> = {
+  free: { crispsPerMonth: 10, maxVoiceProfiles: 1, hasChain: false, hasCalibration: false, maxAudiences: 3 },
+  pro: { crispsPerMonth: Infinity, maxVoiceProfiles: 3, hasChain: true, hasCalibration: true, maxAudiences: Infinity },
+  team: { crispsPerMonth: Infinity, maxVoiceProfiles: 10, hasChain: true, hasCalibration: true, maxAudiences: Infinity },
+  enterprise: { crispsPerMonth: Infinity, maxVoiceProfiles: Infinity, hasChain: true, hasCalibration: true, maxAudiences: Infinity },
 };
-
-export const FREE_OUTPUT_SLUGS = ["email_draft", "action_items", "slack_message"];

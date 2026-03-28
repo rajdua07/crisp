@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { DEFAULT_OUTPUT_TYPES } from "@/lib/output-types";
+import { buildOutputInstructions, outputConfigLabel, outputConfigKey } from "@/lib/output-types";
+import type { OutputConfig } from "@/lib/output-types";
 import { buildRecastPrompt } from "@/lib/prompts";
 
 export const runtime = "nodejs";
@@ -10,8 +11,8 @@ const anthropic = new Anthropic({
 });
 
 /**
- * Demo endpoint — no auth required.
- * Generates 4 default output types from pasted text.
+ * Demo endpoint - no auth required.
+ * Generates 3 outputs (short/medium/long) from pasted text.
  * Rate limited by IP (simple in-memory counter).
  * No voice profile (that's the upsell).
  */
@@ -33,6 +34,12 @@ function checkRateLimit(ip: string): boolean {
   entry.count++;
   return true;
 }
+
+const DEMO_CONFIGS: OutputConfig[] = [
+  { length: "short", format: "default", humanify: false },
+  { length: "medium", format: "default", humanify: false },
+  { length: "long", format: "default", humanify: false },
+];
 
 export async function POST(request: Request) {
   try {
@@ -65,13 +72,9 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Generate all 4 default outputs concurrently
-          const outputPromises = DEFAULT_OUTPUT_TYPES.map(async (outputType) => {
-            const prompt = buildRecastPrompt(
-              outputType.name,
-              outputType.instructions,
-              text
-            );
+          const outputPromises = DEMO_CONFIGS.map(async (config) => {
+            const instructions = buildOutputInstructions(config);
+            const prompt = buildRecastPrompt(instructions, text);
 
             const response = await anthropic.messages.create({
               model: "claude-sonnet-4-20250514",
@@ -84,12 +87,12 @@ export async function POST(request: Request) {
                 ? response.content[0].text
                 : "";
 
-            // Stream each output as it completes
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({
-                  type: outputType.slug,
-                  name: outputType.name,
+                  key: outputConfigKey(config),
+                  label: outputConfigLabel(config),
+                  config,
                   content,
                 })}\n\n`
               )

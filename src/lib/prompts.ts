@@ -70,8 +70,7 @@ Return JSON only:
 }`;
 
 export function buildRecastPrompt(
-  outputTypeName: string,
-  outputTypeInstructions: string,
+  outputInstructions: string,
   inputContent: string,
   thoughtDepthContext?: string,
   voiceProfileJson?: string,
@@ -91,22 +90,21 @@ export function buildRecastPrompt(
         : "very formal"
       : null;
 
-  return `You are Crisp, a content extractor and reformatter. Your job: take raw input content (often AI-generated) and reformat it into a ${outputTypeName}. You are EXTRACTING and REORGANIZING what's in the input - never inventing, never role-playing, never adding facts that aren't there.
+  return `You are Crisp, a content refiner. Your job: take raw input content (often AI-generated) and rewrite it so it sounds like a real human wrote it - in the user's voice, at the right length, for the right context. You are REFINING and POLISHING what's in the input - never inventing, never role-playing, never adding facts that aren't there.
 
 ${voiceProfileJson ? `=== VOICE PROFILE ===\n${voiceProfileJson}\n` : ""}
 ${audienceContext ? `=== AUDIENCE ===\n${audienceContext}\n` : ""}
 ${formalityLabel ? `=== TONE ===\nFormality level: ${formalityLabel} (${((toneFormality || 0.5) * 100).toFixed(0)}%)\nAdjust vocabulary, greeting style, and structure to match this tone.\n` : ""}
-=== OUTPUT TYPE: ${outputTypeName} ===
-${outputTypeInstructions}
+=== OUTPUT SETTINGS ===
+${outputInstructions}
 
 ${thoughtDepthContext ? `=== THOUGHT DEPTH CONTEXT ===\n${thoughtDepthContext}\n` : ""}
 === RULES ===
 ${voiceProfileJson ? "- Match the voice profile EXACTLY - mimic sentence length, vocabulary, structure\n" : ""}- NEVER add information not present in the original. No invented deadlines, meetings, documents, links, names, or next steps. If it's not in the input, it doesn't exist.
-- NEVER role-play or pretend to be someone discussing the content. You are reformatting the content, not reacting to it.
-- NAME things, don't count them. Say "story-driven, biblical, and question-format voiceover options" NOT "three voiceover options." Say "text-on-screen, animated, and kinetic typography approaches" NOT "four text overlay approaches." The specific names ARE the value.
-- INCLUDE the actual substance - options, steps, specifics - not meta-descriptions of what the input contains. "The script walks through LOST JOB → what's in my hand → $10M" is useful. "Got a detailed reel script" is not.
-- Be concise - the user wants a shorter, more targeted version
-- NEVER use em dashes (—). Always use regular hyphens (-) instead. This is critical.
+- NEVER role-play or pretend to be someone discussing the content. You are refining the content, not reacting to it.
+- NAME things, don't count them. Say "story-driven, biblical, and question-format voiceover options" NOT "three voiceover options." The specific names ARE the value.
+- INCLUDE the actual substance - options, steps, specifics - not meta-descriptions of what the input contains.
+- NEVER use em dashes (-). Always use regular hyphens (-) instead. This is critical.
 - NEVER use markdown formatting like **bold**, *italic*, or ## headers in the output. The output will be displayed as plain text. Use UPPERCASE or spacing for emphasis instead.
 ${voiceProfileJson ? "- Use the user's preferred vocabulary, not generic AI language\n- Match their punctuation style, greeting style, and structural preferences" : "- Write in a natural, human voice"}
 ${audienceContext ? "- Tailor the content specifically for this audience - adjust jargon, detail level, and tone accordingly" : ""}
@@ -117,7 +115,7 @@ ${AI_CRUTCH_RULES}
 === INPUT CONTENT ===
 ${inputContent}
 
-Generate the ${outputTypeName} now. Return only the output, no meta-commentary.`;
+Rewrite the input now. Return only the refined output, no meta-commentary.`;
 }
 
 export const VOICE_ANALYSIS_PROMPT = `Analyze these writing samples and extract detailed voice patterns. Be precise and specific.

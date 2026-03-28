@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
+import { buildOutputInstructions, outputConfigLabel, outputConfigKey } from "@/lib/output-types";
+import type { OutputConfig } from "@/lib/output-types";
 import { THOUGHT_DEPTH_PROMPT, buildRecastPrompt } from "@/lib/prompts";
 import { getOrCreateUser, getPlanLimits } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -52,9 +53,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       input_text,
-      output_types = ["exec_brief", "email_draft", "action_items", "slack_message"],
+      output_configs = [{ length: "medium", format: "default", humanify: false }] as OutputConfig[],
       voice_profile,
-      custom_types,
       audience,
       tone_formality,
     } = body;
@@ -71,9 +71,6 @@ export async function POST(request: Request) {
     const audienceContext = audience
       ? `Target audience: ${audience.name}\nDescription: ${audience.description}\nExpected tone: formality ${(audience.tonePreset?.formality * 100 || 50).toFixed(0)}%, warmth ${(audience.tonePreset?.warmth * 100 || 50).toFixed(0)}%`
       : undefined;
-
-    // Merge system types with any custom types from client
-    const allTypes = [...ALL_OUTPUT_TYPES, ...(custom_types || [])];
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -125,16 +122,13 @@ export async function POST(request: Request) {
             return summary;
           }).catch(() => null);
 
-          const selectedTypes = allTypes.filter((t) =>
-            output_types.includes(t.slug)
-          );
+          const configs: OutputConfig[] = output_configs;
+          const collectedOutputs: { key: string; label: string; config: OutputConfig; content: string }[] = [];
 
-          const collectedOutputs: { type: string; name: string; content: string }[] = [];
-
-          const outputPromises = selectedTypes.map(async (outputType) => {
+          const outputPromises = configs.map(async (config: OutputConfig) => {
+            const instructions = buildOutputInstructions(config);
             const prompt = buildRecastPrompt(
-              outputType.name,
-              outputType.instructions,
+              instructions,
               input_text,
               thoughtContext,
               voiceJson,
@@ -149,7 +143,9 @@ export async function POST(request: Request) {
             });
 
             const content = response.content[0].type === "text" ? response.content[0].text : "";
-            const output = { type: outputType.slug, name: outputType.name, content };
+            const key = outputConfigKey(config);
+            const label = outputConfigLabel(config);
+            const output = { key, label, config, content };
             collectedOutputs.push(output);
 
             controller.enqueue(
@@ -172,8 +168,8 @@ export async function POST(request: Request) {
               toneFormality: tone_formality,
               outputs: {
                 create: collectedOutputs.map((o) => ({
-                  outputTypeSlug: o.type,
-                  outputTypeName: o.name,
+                  outputConfig: JSON.parse(JSON.stringify(o.config)),
+                  outputLabel: o.label,
                   content: o.content,
                 })),
               },

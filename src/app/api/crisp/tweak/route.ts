@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { content, instruction, output_type } = body;
+    const { content, instruction, output_config } = body;
 
     if (!content || !instruction) {
       return Response.json(
@@ -27,14 +27,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const configContext = output_config
+      ? `Output settings: ${output_config.length} length, ${output_config.format} format${output_config.humanify ? ", humanified" : ""}`
+      : "";
+
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2048,
       messages: [
         {
           role: "user",
-          content: `You are Crisp, a content tweaker. The user has a ${output_type} output and wants you to modify it based on their instruction.
+          content: `You are Crisp, a content tweaker. The user has a refined output and wants you to modify it based on their instruction.
 
+${configContext ? `=== CONTEXT ===\n${configContext}\n` : ""}
 === CURRENT CONTENT ===
 ${content}
 
@@ -43,8 +48,8 @@ ${instruction}
 
 === RULES ===
 - Apply the user's instruction precisely
-- Keep the same general format and output type (${output_type})
-- NEVER use em dashes (—). Always use regular hyphens (-) instead.
+- Keep the same general format and length
+- NEVER use em dashes (-). Always use regular hyphens (-) instead.
 - Write naturally like a real human
 - Return ONLY the tweaked content, no meta-commentary or explanations
 

@@ -7,7 +7,7 @@ export async function GET() {
     const limits = getPlanLimits(user.plan);
 
     // Fetch all user data in parallel
-    const [voiceProfiles, audiences, sessions, customOutputTypes] =
+    const [voiceProfiles, audiences, sessions] =
       await Promise.all([
         prisma.voiceProfile.findMany({
           where: { userId: user.id },
@@ -22,10 +22,6 @@ export async function GET() {
           orderBy: { createdAt: "desc" },
           take: 100,
           include: { outputs: true },
-        }),
-        prisma.customOutputType.findMany({
-          where: { userId: user.id },
-          orderBy: { sortOrder: "asc" },
         }),
       ]);
 
@@ -69,23 +65,17 @@ export async function GET() {
         thoughtDepthScore: s.thoughtDepth,
         outputs: s.outputs.map((o) => ({
           id: o.id,
-          outputTypeSlug: o.outputTypeSlug,
-          outputTypeName: o.outputTypeName,
+          outputConfig: (o.outputConfig as Record<string, unknown>) || {
+            length: "medium",
+            format: "default",
+            humanify: false,
+          },
           content: o.content,
           userEdits: o.userEdits,
           copied: false,
           voiceProfileId: o.voiceProfileId,
         })),
         createdAt: s.createdAt.toISOString(),
-      })),
-      customOutputTypes: customOutputTypes.map((ct) => ({
-        id: ct.id,
-        name: ct.name,
-        slug: ct.slug,
-        instructions: ct.instructions,
-        icon: ct.icon,
-        defaultVoiceProfileId: ct.defaultVoiceProfileId,
-        sortOrder: ct.sortOrder,
       })),
     });
   } catch (err) {

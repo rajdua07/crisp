@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { VoiceProfileEditor } from "@/components/VoiceProfileEditor";
-import { CustomOutputTypeManager } from "@/components/CustomOutputTypeManager";
 import { AudienceManager } from "@/components/AudienceManager";
 import { IntegrationsManager } from "@/components/IntegrationsManager";
 import { BrandingEditor } from "@/components/BrandingEditor";
@@ -12,7 +11,6 @@ import { useAppStore, PLAN_LIMITS } from "@/lib/store";
 import {
   ArrowLeft,
   Volume2,
-  LayoutGrid,
   User,
   CreditCard,
   Zap,
@@ -21,7 +19,7 @@ import {
   Paintbrush,
 } from "lucide-react";
 
-type Tab = "voice" | "audiences" | "outputs" | "branding" | "integrations" | "account";
+type Tab = "voice" | "audiences" | "branding" | "integrations" | "account";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("voice");
@@ -36,7 +34,6 @@ export default function SettingsPage() {
   const tabs = [
     { id: "voice" as const, label: "Your Voice", icon: Volume2 },
     { id: "audiences" as const, label: "Audiences", icon: Target },
-    { id: "outputs" as const, label: "Output Types", icon: LayoutGrid },
     { id: "branding" as const, label: "Branding", icon: Paintbrush },
     { id: "integrations" as const, label: "Integrations", icon: Plug },
     { id: "account" as const, label: "Account", icon: User },
@@ -145,25 +142,6 @@ export default function SettingsPage() {
             </motion.div>
           )}
 
-          {activeTab === "outputs" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="max-w-2xl"
-            >
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-dark-100 mb-2">
-                  Output Types
-                </h2>
-                <p className="text-sm text-dark-400">
-                  Choose which output types appear when you Crisp. Toggle them on
-                  or off, or create your own.
-                </p>
-              </div>
-              <CustomOutputTypeManager />
-            </motion.div>
-          )}
-
           {activeTab === "branding" && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -260,12 +238,6 @@ export default function SettingsPage() {
                     <span className="text-dark-400">Voice profiles</span>
                     <span className="text-dark-200">
                       {limits.maxVoiceProfiles === Infinity ? "Unlimited" : `Up to ${limits.maxVoiceProfiles}`}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-dark-400">Output types</span>
-                    <span className="text-dark-200">
-                      {limits.maxOutputTypes === Infinity ? "Unlimited" : `Up to ${limits.maxOutputTypes}`}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">

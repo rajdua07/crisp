@@ -45,7 +45,8 @@ export async function GET() {
     const typeUsage: Record<string, number> = {};
     for (const session of sessions) {
       for (const output of session.outputs) {
-        typeUsage[output.outputTypeName] = (typeUsage[output.outputTypeName] || 0) + 1;
+        const typeName = output.outputLabel || output.outputTypeName || "Unknown";
+        typeUsage[typeName] = (typeUsage[typeName] || 0) + 1;
       }
     }
     const topOutputTypes = Object.entries(typeUsage)

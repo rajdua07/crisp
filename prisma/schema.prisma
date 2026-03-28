@@ -100,8 +100,10 @@ model Session {
 model SessionOutput {
   id             String  @id @default(cuid())
   sessionId      String
-  outputTypeSlug String
-  outputTypeName String
+  outputConfig   Json?     // { length, format, humanify }
+  outputLabel    String?
+  outputTypeSlug String?   // deprecated - kept for old sessions
+  outputTypeName String?   // deprecated - kept for old sessions
   content        String
   userEdits      String?
   voiceProfileId String?

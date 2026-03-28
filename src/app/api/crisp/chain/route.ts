@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
+import { buildOutputInstructions, outputConfigLabel, outputConfigKey } from "@/lib/output-types";
+import type { OutputConfig } from "@/lib/output-types";
 import { buildRecastPrompt } from "@/lib/prompts";
 import { getOrCreateUser } from "@/lib/auth";
 
@@ -15,10 +16,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
     }
 
-    const { edited_content, output_types, voice_profile } = await request.json();
+    const { edited_content, output_configs, voice_profile } = await request.json();
 
-    if (!edited_content || !output_types?.length) {
-      return Response.json({ error: "edited_content and output_types required" }, { status: 400 });
+    if (!edited_content || !output_configs?.length) {
+      return Response.json({ error: "edited_content and output_configs required" }, { status: 400 });
     }
 
     const voiceJson = voice_profile ? JSON.stringify(voice_profile, null, 2) : undefined;
@@ -27,14 +28,12 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const selectedTypes = ALL_OUTPUT_TYPES.filter((t) =>
-            output_types.includes(t.slug)
-          );
+          const configs: OutputConfig[] = output_configs;
 
-          const outputPromises = selectedTypes.map(async (outputType) => {
+          const outputPromises = configs.map(async (config: OutputConfig) => {
+            const instructions = buildOutputInstructions(config);
             const prompt = buildRecastPrompt(
-              outputType.name,
-              outputType.instructions,
+              instructions,
               edited_content,
               undefined,
               voiceJson
@@ -50,8 +49,9 @@ export async function POST(request: Request) {
             controller.enqueue(
               encoder.encode(
                 `event: output\ndata: ${JSON.stringify({
-                  type: outputType.slug,
-                  name: outputType.name,
+                  key: outputConfigKey(config),
+                  label: outputConfigLabel(config),
+                  config,
                   content,
                 })}\n\n`
               )

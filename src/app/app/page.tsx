@@ -13,17 +13,18 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 import {
   useAppStore,
   PLAN_LIMITS,
-  FREE_OUTPUT_SLUGS,
   CrispSession,
 } from "@/lib/store";
-import { ALL_OUTPUT_TYPES } from "@/lib/output-types";
+import { outputConfigKey, outputConfigLabel } from "@/lib/output-types";
+import type { OutputConfig } from "@/lib/output-types";
 import { Sparkles, Menu, AlertCircle, Star } from "lucide-react";
 import { SafeUserButton } from "@/lib/clerk-helpers";
 import { v4 as uuidv4 } from "uuid";
 
 interface OutputResult {
-  type: string;
-  name: string;
+  key: string;
+  label: string;
+  config: OutputConfig;
   content: string;
 }
 
@@ -36,8 +37,9 @@ export default function AppPage() {
     toggleStarSession,
     voiceProfiles,
     activeVoiceProfileId,
-    enabledOutputTypes,
-    customOutputTypes,
+    selectedLengths,
+    selectedFormat,
+    humanify,
     audiences,
     activeAudienceId,
     toneFormality,
@@ -49,7 +51,7 @@ export default function AppPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [outputs, setOutputs] = useState<OutputResult[]>([]);
   const [thoughtDepth, setThoughtDepth] = useState<ThoughtDepthScore | null>(null);
-  const [loadingTypes, setLoadingTypes] = useState<string[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState<OutputConfig[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -73,9 +75,6 @@ export default function AppPage() {
     if (sessionId) {
       loadSession(sessionId);
     }
-    if (params.get("upgraded")) {
-      // Could show a success toast
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,8 +84,9 @@ export default function AppPage() {
       setActiveSessionId(sessionId);
       setOutputs(
         session.outputs.map((o) => ({
-          type: o.outputTypeSlug,
-          name: o.outputTypeName,
+          key: outputConfigKey(o.outputConfig),
+          label: outputConfigLabel(o.outputConfig),
+          config: o.outputConfig,
           content: o.userEdits || o.content,
         }))
       );
@@ -102,11 +102,12 @@ export default function AppPage() {
     return voiceProfiles.find((p) => p.isDefault);
   };
 
-  const getActiveOutputSlugs = () => {
-    if (user.plan === "free") {
-      return enabledOutputTypes.filter((s) => FREE_OUTPUT_SLUGS.includes(s));
-    }
-    return enabledOutputTypes;
+  const buildOutputConfigs = (): OutputConfig[] => {
+    return selectedLengths.map((length) => ({
+      length,
+      format: selectedFormat,
+      humanify,
+    }));
   };
 
   const handleSubmit = useCallback(
@@ -133,8 +134,8 @@ export default function AppPage() {
       setChainSource(null);
       setLastInputText(inputText);
 
-      const activeSlugs = getActiveOutputSlugs();
-      setLoadingTypes(activeSlugs);
+      const configs = buildOutputConfigs();
+      setLoadingConfigs(configs);
 
       const voiceProfile = getActiveVoiceProfile();
       const activeAudience = activeAudienceId
@@ -147,11 +148,8 @@ export default function AppPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input_text: inputText,
-            output_types: activeSlugs,
+            output_configs: configs,
             voice_profile: voiceProfile?.profileData || null,
-            custom_types: customOutputTypes.filter((t) =>
-              activeSlugs.includes(t.slug)
-            ),
             audience: activeAudience || null,
             tone_formality: toneFormality,
           }),
@@ -193,7 +191,9 @@ export default function AppPage() {
                 } else if (eventType === "output") {
                   collectedOutputs.push(data);
                   setOutputs((prev) => [...prev, data]);
-                  setLoadingTypes((prev) => prev.filter((t) => t !== data.type));
+                  setLoadingConfigs((prev) =>
+                    prev.filter((c) => outputConfigKey(c) !== data.key)
+                  );
                 } else if (eventType === "summary") {
                   collectedSummary = data.summary;
                 } else if (eventType === "error") {
@@ -216,8 +216,7 @@ export default function AppPage() {
           thoughtDepthScore: collectedDepth as Record<string, unknown> | null,
           outputs: collectedOutputs.map((o) => ({
             id: uuidv4(),
-            outputTypeSlug: o.type,
-            outputTypeName: o.name,
+            outputConfig: o.config,
             content: o.content,
             copied: false,
           })),
@@ -233,11 +232,11 @@ export default function AppPage() {
         }
       } finally {
         setIsLoading(false);
-        setLoadingTypes([]);
+        setLoadingConfigs([]);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, limits, enabledOutputTypes, customOutputTypes, voiceProfiles, activeVoiceProfileId, chainSource, audiences, activeAudienceId, toneFormality]
+    [user, limits, selectedLengths, selectedFormat, humanify, voiceProfiles, activeVoiceProfileId, chainSource, audiences, activeAudienceId, toneFormality]
   );
 
   const handleCalibrate = useCallback(
@@ -245,7 +244,7 @@ export default function AppPage() {
       if (!limits.hasCalibration) return;
 
       try {
-        const res = await fetch("/api/calibrate", {
+        await fetch("/api/calibrate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -253,11 +252,6 @@ export default function AppPage() {
             edited_content: edited,
           }),
         });
-
-        if (res.ok) {
-          // Calibration adjustments received — in production, merge into voice profile
-          // For now, just log success
-        }
       } catch {
         // Silent fail for calibration
       }
@@ -287,7 +281,6 @@ export default function AppPage() {
       }
 
       const { enriched_text } = await res.json();
-      // Re-submit with enriched content
       handleSubmit(enriched_text);
     } catch (err) {
       if (err instanceof Error) {
@@ -315,14 +308,6 @@ export default function AppPage() {
   }, []);
 
   const hasResults = outputs.length > 0 || thoughtDepth || isLoading;
-
-  const allTypes = [...ALL_OUTPUT_TYPES, ...customOutputTypes.map((ct) => ({
-    slug: ct.slug,
-    name: ct.name,
-    icon: ct.icon,
-    description: ct.instructions.slice(0, 50),
-    instructions: ct.instructions,
-  }))];
 
   return (
     <div className="flex h-[100dvh] bg-dark-950">
@@ -435,7 +420,7 @@ export default function AppPage() {
                     {/* Quick stats */}
                     <div className="flex items-center justify-center gap-6 mt-8 text-xs text-dark-500">
                       <span>
-                        {getActiveOutputSlugs().length} output types active
+                        {selectedLengths.length} version{selectedLengths.length !== 1 ? "s" : ""}
                       </span>
                       {voiceProfiles.length > 0 && (
                         <span>
@@ -452,7 +437,7 @@ export default function AppPage() {
                   animate={{ opacity: 1 }}
                   className="grid lg:grid-cols-[1fr_1.2fr] gap-4 sm:gap-8"
                 >
-                  {/* Left — Paste zone + Thought Depth */}
+                  {/* Left - Paste zone + Thought Depth */}
                   <div className="space-y-5">
                     <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} compact />
                     {thoughtDepth && (
@@ -464,7 +449,7 @@ export default function AppPage() {
                     )}
                   </div>
 
-                  {/* Right — Output cards */}
+                  {/* Right - Output cards */}
                   <div className="space-y-4">
                     {error && (
                       <motion.div
@@ -477,38 +462,30 @@ export default function AppPage() {
                       </motion.div>
                     )}
 
-                    {outputs.map((output, i) => {
-                      const typeInfo = allTypes.find(
-                        (t) => t.slug === output.type
-                      );
-                      return (
-                        <OutputCard
-                          key={output.type}
-                          type={output.type}
-                          name={output.name}
-                          icon={typeInfo?.icon || "briefcase"}
-                          content={output.content}
-                          index={i}
-                          sessionId={activeSessionId || undefined}
-                          onCalibrate={handleCalibrate}
-                        />
-                      );
-                    })}
+                    {outputs.map((output, i) => (
+                      <OutputCard
+                        key={output.key}
+                        configKey={output.key}
+                        label={output.label}
+                        config={output.config}
+                        content={output.content}
+                        index={i}
+                        sessionId={activeSessionId || undefined}
+                        onCalibrate={handleCalibrate}
+                      />
+                    ))}
 
-                    {loadingTypes.map((slug, i) => {
-                      const typeInfo = allTypes.find((t) => t.slug === slug);
-                      return (
-                        <OutputCard
-                          key={`loading-${slug}`}
-                          type={slug}
-                          name={typeInfo?.name || slug}
-                          icon={typeInfo?.icon || "briefcase"}
-                          content=""
-                          index={outputs.length + i}
-                          isLoading
-                        />
-                      );
-                    })}
+                    {loadingConfigs.map((config, i) => (
+                      <OutputCard
+                        key={`loading-${outputConfigKey(config)}`}
+                        configKey={outputConfigKey(config)}
+                        label={outputConfigLabel(config)}
+                        config={config}
+                        content=""
+                        index={outputs.length + i}
+                        isLoading
+                      />
+                    ))}
                   </div>
                 </motion.div>
               )}
