@@ -30,8 +30,10 @@ export async function POST(request: Request) {
   try {
     const user = await getOrCreateUser();
     const limits = getPlanLimits(user.plan);
+    const hasClerk = !!process.env.CLERK_SECRET_KEY;
 
     if (
+      hasClerk &&
       limits.crispsPerMonth !== Infinity &&
       user.crispsUsedThisMonth >= limits.crispsPerMonth
     ) {
