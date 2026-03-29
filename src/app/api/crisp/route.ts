@@ -66,23 +66,26 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Generate summary
-          const summaryPromise = callClaude({
-            model: "claude-haiku-4-5-20251001",
-            max_tokens: 30,
-            messages: [{
-              role: "user",
-              content: `Summarize the theme of this text in 3-6 words. No quotes, no punctuation at the end. Examples: "Q3 revenue analysis", "Team offsite planning", "Product launch strategy"\n\nText:\n${input_text.slice(0, 500)}`,
-            }],
-          }).then((res) => {
-            const summary = res.content[0].type === "text" ? res.content[0].text.trim() : "";
+          // Generate summary first (small request)
+          let summary = "";
+          try {
+            const summaryRes = await callClaude({
+              model: "claude-haiku-4-5-20251001",
+              max_tokens: 30,
+              messages: [{
+                role: "user",
+                content: `Summarize the theme of this text in 3-6 words. No quotes, no punctuation at the end. Examples: "Q3 revenue analysis", "Team offsite planning", "Product launch strategy"\n\nText:\n${input_text.slice(0, 500)}`,
+              }],
+            });
+            summary = summaryRes.content[0].type === "text" ? summaryRes.content[0].text.trim() : "";
             controller.enqueue(
               encoder.encode(
                 `event: summary\ndata: ${JSON.stringify({ summary })}\n\n`
               )
             );
-            return summary;
-          }).catch(() => null);
+          } catch {
+            // Summary is optional, continue without it
+          }
 
           // Generate single refined output
           const prompt = buildRecastPrompt(
@@ -107,8 +110,6 @@ export async function POST(request: Request) {
               `event: refined\ndata: ${JSON.stringify({ refined })}\n\n`
             )
           );
-
-          const summary = await summaryPromise;
 
           // Persist session
           await prisma.session.create({
@@ -140,11 +141,11 @@ export async function POST(request: Request) {
             )
           );
         } catch (err) {
+          const errMsg = err instanceof Error ? err.message : "Unknown error";
+          console.error("Crisp API error:", errMsg);
           controller.enqueue(
             encoder.encode(
-              `event: error\ndata: ${JSON.stringify({
-                error: err instanceof Error ? err.message : "Unknown error",
-              })}\n\n`
+              `event: error\ndata: ${JSON.stringify({ error: errMsg })}\n\n`
             )
           );
         } finally {
