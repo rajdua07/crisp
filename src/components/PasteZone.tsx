@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { LENGTH_OPTIONS, FORMAT_OPTIONS } from "@/lib/output-types";
-import type { OutputLength, OutputFormat } from "@/lib/output-types";
+import type { OutputFormat } from "@/lib/output-types";
 
 const AUDIENCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   crown: Crown,
