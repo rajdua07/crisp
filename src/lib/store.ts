@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { OutputConfig } from "@/lib/output-types";
 
 // ─── Audience ───
 export interface Audience {
@@ -87,7 +86,7 @@ export interface CrispSession {
 
 export interface SessionOutput {
   id: string;
-  outputConfig: OutputConfig;
+  outputConfig: Record<string, unknown>;
   content: string;
   userEdits?: string;
   copied: boolean;
@@ -180,14 +179,6 @@ interface AppState {
   setActiveAudienceId: (id: string | null) => void;
   toneFormality: number;
   setToneFormality: (value: number) => void;
-
-  // Output settings
-  selectedLengths: OutputConfig["length"][];
-  setSelectedLengths: (lengths: OutputConfig["length"][]) => void;
-  selectedFormat: OutputConfig["format"];
-  setSelectedFormat: (format: OutputConfig["format"]) => void;
-  humanify: boolean;
-  setHumanify: (value: boolean) => void;
 
   // Document Branding
   documentBranding: DocumentBranding;
@@ -323,13 +314,6 @@ export const useAppStore = create<AppState>()(
       toneFormality: 0.5,
       setToneFormality: (value) => set({ toneFormality: value }),
 
-      // ─── Output settings ───
-      selectedLengths: ["medium"],
-      setSelectedLengths: (lengths) => set({ selectedLengths: lengths }),
-      selectedFormat: "default",
-      setSelectedFormat: (format) => set({ selectedFormat: format }),
-      humanify: false,
-      setHumanify: (value) => set({ humanify: value }),
     }),
     {
       name: "crisp-storage",

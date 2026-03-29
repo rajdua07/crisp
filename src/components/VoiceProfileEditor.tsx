@@ -240,6 +240,7 @@ export function VoiceProfileEditor() {
         return t + 1;
       });
     }, 1000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // --- MediaRecorder fallback ---

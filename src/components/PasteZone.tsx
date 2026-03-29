@@ -16,8 +16,6 @@ import {
   Upload,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { LENGTH_OPTIONS, FORMAT_OPTIONS } from "@/lib/output-types";
-import type { OutputLength, OutputFormat } from "@/lib/output-types";
 
 const AUDIENCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   crown: Crown,
@@ -51,12 +49,6 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
     setActiveAudienceId,
     toneFormality,
     setToneFormality,
-    selectedLengths,
-    setSelectedLengths,
-    selectedFormat,
-    setSelectedFormat,
-    humanify,
-    setHumanify,
   } = useAppStore();
 
   const charCount = text.length;
@@ -150,16 +142,6 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
       if (audience) {
         setToneFormality(audience.tonePreset.formality);
       }
-    }
-  };
-
-  const toggleLength = (length: OutputLength) => {
-    if (selectedLengths.includes(length)) {
-      if (selectedLengths.length > 1) {
-        setSelectedLengths(selectedLengths.filter((l) => l !== length));
-      }
-    } else {
-      setSelectedLengths([...selectedLengths, length]);
     }
   };
 
@@ -385,83 +367,6 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
         </AnimatePresence>
       </div>
 
-      {/* Length selector (multi-select) */}
-      <div>
-        <div className="text-[10px] uppercase tracking-widest text-dark-500 font-medium mb-2">
-          Length (select multiple to compare)
-        </div>
-        <div className="flex gap-2">
-          {LENGTH_OPTIONS.map((opt) => {
-            const isSelected = selectedLengths.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                onClick={() => toggleLength(opt.value)}
-                className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-all border ${
-                  isSelected
-                    ? "bg-crisp-500/10 text-crisp-400 border-crisp-500/20"
-                    : "bg-dark-900/30 text-dark-500 border-dark-800/50 hover:text-dark-300 hover:border-dark-700/50"
-                }`}
-              >
-                <span>{opt.label}</span>
-                <span className="text-[10px] font-normal opacity-60">{opt.description}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Format + Humanify row */}
-      <div className="flex gap-4 items-start">
-        {/* Format selector */}
-        <div className="flex-1">
-          <div className="text-[10px] uppercase tracking-widest text-dark-500 font-medium mb-2">
-            Format
-          </div>
-          <div className="flex gap-1.5">
-            {FORMAT_OPTIONS.map((opt) => {
-              const isSelected = selectedFormat === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => setSelectedFormat(opt.value as OutputFormat)}
-                  className={`flex-1 px-2.5 py-2 rounded-xl text-[11px] font-medium transition-all border ${
-                    isSelected
-                      ? "bg-crisp-500/10 text-crisp-400 border-crisp-500/20"
-                      : "bg-dark-900/30 text-dark-500 border-dark-800/50 hover:text-dark-300 hover:border-dark-700/50"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Humanify toggle */}
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-dark-500 font-medium mb-2">
-            Humanify
-          </div>
-          <button
-            onClick={() => setHumanify(!humanify)}
-            className={`relative w-12 h-7 rounded-full transition-all duration-200 ${
-              humanify
-                ? "bg-crisp-500/30 border border-crisp-500/40"
-                : "bg-dark-800 border border-dark-700/50"
-            }`}
-          >
-            <motion.div
-              animate={{ x: humanify ? 20 : 2 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className={`w-5 h-5 rounded-full absolute top-[3px] transition-colors ${
-                humanify ? "bg-crisp-400" : "bg-dark-500"
-              }`}
-            />
-          </button>
-        </div>
-      </div>
-
       {/* Crisp It button */}
       <motion.button
         whileHover={{ scale: 1.01, y: -1 }}
@@ -482,10 +387,7 @@ export function PasteZone({ onSubmit, isLoading, text, onTextChange, compact = f
         ) : (
           <>
             <Sparkles className="w-4 h-4" />
-            <span>
-              Crisp It{activeAudience ? ` for ${activeAudience.name}` : ""}
-              {selectedLengths.length > 1 ? ` (${selectedLengths.length} versions)` : ""}
-            </span>
+            <span>Crisp It{activeAudience ? ` for ${activeAudience.name}` : ""}</span>
           </>
         )}
       </motion.button>

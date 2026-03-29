@@ -1,19 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { buildOutputInstructions, outputConfigLabel, outputConfigKey } from "@/lib/output-types";
-import type { OutputConfig } from "@/lib/output-types";
 import { buildRecastPrompt } from "@/lib/prompts";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
 
-const anthropic = new Anthropic({
+const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
-async function callClaude(params: Parameters<typeof anthropic.messages.create>[0], retries = 3): Promise<Anthropic.Messages.Message> {
+async function callClaude(params: Anthropic.Messages.MessageCreateParamsNonStreaming, retries = 3): Promise<Anthropic.Messages.Message> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await anthropic.messages.create(params);
+      return await client.messages.create(params);
     } catch (err: unknown) {
       const status = err instanceof Anthropic.APIError ? err.status : undefined;
       if (status === 429 && attempt < retries) {
@@ -28,7 +26,7 @@ async function callClaude(params: Parameters<typeof anthropic.messages.create>[0
 
 /**
  * Demo endpoint - no auth required.
- * Generates 3 outputs (short/medium/long) from pasted text.
+ * Generates a single refined output from pasted text.
  * Rate limited by IP (simple in-memory counter).
  * No voice profile (that's the upsell).
  */
@@ -50,12 +48,6 @@ function checkRateLimit(ip: string): boolean {
   entry.count++;
   return true;
 }
-
-const DEMO_CONFIGS: OutputConfig[] = [
-  { length: "short", format: "default", humanify: false },
-  { length: "medium", format: "default", humanify: false },
-  { length: "long", format: "default", humanify: false },
-];
 
 export async function POST(request: Request) {
   try {
@@ -84,52 +76,20 @@ export async function POST(request: Request) {
     // Cap input to 3000 chars for demo
     const text = input_text.substring(0, 3000);
 
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for (const config of DEMO_CONFIGS) {
-            const instructions = buildOutputInstructions(config);
-            const prompt = buildRecastPrompt(instructions, text);
+    const prompt = buildRecastPrompt(
+      `Refine this text to be clearer, more direct, and free of AI patterns. Preserve the original meaning, structure, and approximate length. Do not change the format - if it's an email, keep it as an email. If it's bullet points, keep bullet points. Just make every sentence sound like a real human wrote it.`,
+      text
+    );
 
-            const response = await callClaude({
-              model: "claude-haiku-4-5-20251001",
-              max_tokens: 2048,
-              messages: [{ role: "user", content: prompt }],
-            });
-
-            const content =
-              response.content[0].type === "text"
-                ? response.content[0].text
-                : "";
-
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  key: outputConfigKey(config),
-                  label: outputConfigLabel(config),
-                  config,
-                  content,
-                })}\n\n`
-              )
-            );
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
-        } catch (error) {
-          console.error("Demo generation error:", error);
-          controller.error(error);
-        }
-      },
+    const response = await callClaude({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
     });
 
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
+    const refined = response.content[0].type === "text" ? response.content[0].text : "";
+
+    return Response.json({ original: text, refined });
   } catch (error: unknown) {
     console.error("Demo error:", error);
     return Response.json({ error: "Demo failed." }, { status: 500 });

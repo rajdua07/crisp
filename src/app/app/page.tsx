@@ -3,11 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PasteZone } from "@/components/PasteZone";
-import { OutputCard } from "@/components/OutputCard";
-import {
-  ThoughtDepthIndicator,
-  ThoughtDepthScore,
-} from "@/components/ThoughtDepthIndicator";
+import { DiffView } from "@/components/DiffView";
 import { Sidebar } from "@/components/Sidebar";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import {
@@ -15,18 +11,9 @@ import {
   PLAN_LIMITS,
   CrispSession,
 } from "@/lib/store";
-import { outputConfigKey, outputConfigLabel } from "@/lib/output-types";
-import type { OutputConfig } from "@/lib/output-types";
-import { Sparkles, Menu, AlertCircle, Star } from "lucide-react";
+import { Sparkles, Menu, AlertCircle, Star, Loader2 } from "lucide-react";
 import { SafeUserButton } from "@/lib/clerk-helpers";
 import { v4 as uuidv4 } from "uuid";
-
-interface OutputResult {
-  key: string;
-  label: string;
-  config: OutputConfig;
-  content: string;
-}
 
 export default function AppPage() {
   const {
@@ -37,9 +24,6 @@ export default function AppPage() {
     toggleStarSession,
     voiceProfiles,
     activeVoiceProfileId,
-    selectedLengths,
-    selectedFormat,
-    humanify,
     audiences,
     activeAudienceId,
     toneFormality,
@@ -49,21 +33,16 @@ export default function AppPage() {
   const limits = PLAN_LIMITS[user.plan];
 
   const [isLoading, setIsLoading] = useState(false);
-  const [outputs, setOutputs] = useState<OutputResult[]>([]);
-  const [thoughtDepth, setThoughtDepth] = useState<ThoughtDepthScore | null>(null);
-  const [loadingConfigs, setLoadingConfigs] = useState<OutputConfig[]>([]);
+  const [originalText, setOriginalText] = useState<string | null>(null);
+  const [refinedText, setRefinedText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [chainSource, setChainSource] = useState<string | null>(null);
-  const [isEnriching, setIsEnriching] = useState(false);
-  const [lastInputText, setLastInputText] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Hydrate from server + check query params
   useEffect(() => {
     hydrateFromServer();
 
@@ -82,16 +61,8 @@ export default function AppPage() {
     const session = getSession(sessionId);
     if (session) {
       setActiveSessionId(sessionId);
-      setOutputs(
-        session.outputs.map((o) => ({
-          key: outputConfigKey(o.outputConfig),
-          label: outputConfigLabel(o.outputConfig),
-          config: o.outputConfig,
-          content: o.userEdits || o.content,
-        }))
-      );
-      setThoughtDepth(session.thoughtDepthScore as ThoughtDepthScore | null);
-      setChainSource(null);
+      setOriginalText(session.inputText);
+      setRefinedText(session.outputs[0]?.userEdits || session.outputs[0]?.content || null);
     }
   };
 
@@ -102,17 +73,8 @@ export default function AppPage() {
     return voiceProfiles.find((p) => p.isDefault);
   };
 
-  const buildOutputConfigs = (): OutputConfig[] => {
-    return selectedLengths.map((length) => ({
-      length,
-      format: selectedFormat,
-      humanify,
-    }));
-  };
-
   const handleSubmit = useCallback(
-    async (inputText: string) => {
-      // Check usage limits
+    async (text: string) => {
       if (user.plan === "free" && user.crispsUsedThisMonth >= limits.crispsPerMonth) {
         setUpgradeReason(
           `You've used all ${limits.crispsPerMonth} free crisps this month.`
@@ -128,14 +90,9 @@ export default function AppPage() {
       abortControllerRef.current = controller;
 
       setIsLoading(true);
-      setOutputs([]);
-      setThoughtDepth(null);
+      setOriginalText(text);
+      setRefinedText(null);
       setError(null);
-      setChainSource(null);
-      setLastInputText(inputText);
-
-      const configs = buildOutputConfigs();
-      setLoadingConfigs(configs);
 
       const voiceProfile = getActiveVoiceProfile();
       const activeAudience = activeAudienceId
@@ -147,8 +104,7 @@ export default function AppPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            input_text: inputText,
-            output_configs: configs,
+            input_text: text,
             voice_profile: voiceProfile?.profileData || null,
             audience: activeAudience || null,
             tone_formality: toneFormality,
@@ -166,8 +122,7 @@ export default function AppPage() {
 
         const decoder = new TextDecoder();
         let buffer = "";
-        const collectedOutputs: OutputResult[] = [];
-        let collectedDepth: ThoughtDepthScore | null = null;
+        let collectedRefined = "";
         let collectedSummary = "";
 
         while (true) {
@@ -185,15 +140,9 @@ export default function AppPage() {
             } else if (line.startsWith("data: ") && eventType) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (eventType === "thought_depth") {
-                  collectedDepth = data;
-                  setThoughtDepth(data);
-                } else if (eventType === "output") {
-                  collectedOutputs.push(data);
-                  setOutputs((prev) => [...prev, data]);
-                  setLoadingConfigs((prev) =>
-                    prev.filter((c) => outputConfigKey(c) !== data.key)
-                  );
+                if (eventType === "refined") {
+                  collectedRefined = data.refined;
+                  setRefinedText(data.refined);
                 } else if (eventType === "summary") {
                   collectedSummary = data.summary;
                 } else if (eventType === "error") {
@@ -208,41 +157,40 @@ export default function AppPage() {
         }
 
         // Save session
-        const sessionId = uuidv4();
-        const session: CrispSession = {
-          id: sessionId,
-          inputText,
-          summary: collectedSummary || undefined,
-          thoughtDepthScore: collectedDepth as Record<string, unknown> | null,
-          outputs: collectedOutputs.map((o) => ({
-            id: uuidv4(),
-            outputConfig: o.config,
-            content: o.content,
-            copied: false,
-          })),
-          chainParentId: chainSource || undefined,
-          createdAt: new Date().toISOString(),
-        };
-        addSession(session);
-        setActiveSessionId(sessionId);
-        incrementCrisps();
+        if (collectedRefined) {
+          const sessionId = uuidv4();
+          const session: CrispSession = {
+            id: sessionId,
+            inputText: text,
+            summary: collectedSummary || undefined,
+            thoughtDepthScore: null,
+            outputs: [{
+              id: uuidv4(),
+              outputConfig: { length: "medium", format: "default", humanify: false },
+              content: collectedRefined,
+              copied: false,
+            }],
+            createdAt: new Date().toISOString(),
+          };
+          addSession(session);
+          setActiveSessionId(sessionId);
+          incrementCrisps();
+        }
       } catch (err) {
         if (err instanceof Error && err.name !== "AbortError") {
           setError(err.message);
         }
       } finally {
         setIsLoading(false);
-        setLoadingConfigs([]);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, limits, selectedLengths, selectedFormat, humanify, voiceProfiles, activeVoiceProfileId, chainSource, audiences, activeAudienceId, toneFormality]
+    [user, limits, voiceProfiles, activeVoiceProfileId, audiences, activeAudienceId, toneFormality]
   );
 
   const handleCalibrate = useCallback(
     async (original: string, edited: string) => {
       if (!limits.hasCalibration) return;
-
       try {
         await fetch("/api/calibrate", {
           method: "POST",
@@ -253,50 +201,18 @@ export default function AppPage() {
           }),
         });
       } catch {
-        // Silent fail for calibration
+        // Silent fail
       }
     },
     [limits]
   );
 
-  const handleEnrich = useCallback(async () => {
-    if (!lastInputText || !thoughtDepth) return;
-
-    setIsEnriching(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/crisp/enrich", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input_text: lastInputText,
-          thought_depth: thoughtDepth,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Enrichment failed");
-      }
-
-      const { enriched_text } = await res.json();
-      handleSubmit(enriched_text);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      }
-    } finally {
-      setIsEnriching(false);
-    }
-  }, [lastInputText, thoughtDepth, handleSubmit]);
-
   const handleNewCrisp = () => {
-    setOutputs([]);
-    setThoughtDepth(null);
+    setOriginalText(null);
+    setRefinedText(null);
     setError(null);
     setActiveSessionId(null);
-    setChainSource(null);
+    setInputText("");
   };
 
   useEffect(() => {
@@ -307,7 +223,7 @@ export default function AppPage() {
     };
   }, []);
 
-  const hasResults = outputs.length > 0 || thoughtDepth || isLoading;
+  const hasResults = originalText !== null && (refinedText !== null || isLoading);
 
   return (
     <div className="flex h-[100dvh] bg-dark-950">
@@ -328,14 +244,12 @@ export default function AppPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-3 sm:px-6 h-14 border-b border-dark-800/50 flex-shrink-0">
           <div className="flex items-center gap-3">
-            {(!sidebarOpen || true) && (
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg text-dark-400 hover:text-dark-200 hover:bg-dark-800/50 transition-colors lg:hidden"
-              >
-                <Menu className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 rounded-lg text-dark-400 hover:text-dark-200 hover:bg-dark-800/50 transition-colors lg:hidden"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
             {!sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -343,12 +257,6 @@ export default function AppPage() {
               >
                 <Menu className="w-4 h-4" />
               </button>
-            )}
-            {chainSource && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-crisp-500/10 border border-crisp-500/20 text-xs text-crisp-400">
-                <Sparkles className="w-3 h-3" />
-                Chaining from previous output
-              </div>
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -386,7 +294,7 @@ export default function AppPage() {
 
         {/* Main content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
             <AnimatePresence mode="wait">
               {!hasResults ? (
                 <motion.div
@@ -408,26 +316,22 @@ export default function AppPage() {
                         Paste any AI output below
                       </div>
                       <h1 className="text-2xl md:text-3xl font-bold text-dark-100 mb-2">
-                        What do you need to{" "}
-                        <span className="gradient-text">Crisp</span>?
+                        Make it sound like{" "}
+                        <span className="gradient-text">you</span>
                       </h1>
                       <p className="text-sm text-dark-400">
-                        Drop a ChatGPT dump, Claude response, or any AI-generated text.
+                        Paste AI-generated text. Crisp strips the AI voice and rewrites it in yours.
                       </p>
                     </motion.div>
                     <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} />
 
-                    {/* Quick stats */}
-                    <div className="flex items-center justify-center gap-6 mt-8 text-xs text-dark-500">
-                      <span>
-                        {selectedLengths.length} version{selectedLengths.length !== 1 ? "s" : ""}
-                      </span>
-                      {voiceProfiles.length > 0 && (
-                        <span>
-                          Voice: {getActiveVoiceProfile()?.name || "Default"}
-                        </span>
-                      )}
-                    </div>
+                    {/* Voice indicator */}
+                    {voiceProfiles.length > 0 && (
+                      <div className="flex items-center justify-center gap-2 mt-6 text-xs text-dark-500">
+                        <Sparkles className="w-3 h-3 text-crisp-400/50" />
+                        <span>Voice: {getActiveVoiceProfile()?.name || "Default"}</span>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ) : (
@@ -435,58 +339,47 @@ export default function AppPage() {
                   key="results"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="grid lg:grid-cols-[1fr_1.2fr] gap-4 sm:gap-8"
+                  className="space-y-6"
                 >
-                  {/* Left - Paste zone + Thought Depth */}
-                  <div className="space-y-5">
-                    <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} compact />
-                    {thoughtDepth && (
-                      <ThoughtDepthIndicator
-                        score={thoughtDepth}
-                        onEnrich={handleEnrich}
-                        isEnriching={isEnriching}
-                      />
-                    )}
-                  </div>
+                  {/* Compact paste zone for re-crisping */}
+                  <PasteZone onSubmit={handleSubmit} isLoading={isLoading} text={inputText} onTextChange={setInputText} compact />
 
-                  {/* Right - Output cards */}
-                  <div className="space-y-4">
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-400 flex items-center gap-3"
-                      >
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        {error}
-                      </motion.div>
-                    )}
+                  {/* Error */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-sm text-red-400 flex items-center gap-3"
+                    >
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {error}
+                    </motion.div>
+                  )}
 
-                    {outputs.map((output, i) => (
-                      <OutputCard
-                        key={output.key}
-                        configKey={output.key}
-                        label={output.label}
-                        config={output.config}
-                        content={output.content}
-                        index={i}
-                        sessionId={activeSessionId || undefined}
-                        onCalibrate={handleCalibrate}
-                      />
-                    ))}
+                  {/* Loading state */}
+                  {isLoading && !refinedText && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl border border-dark-700/50 bg-dark-900/50 p-8 flex flex-col items-center gap-4"
+                    >
+                      <Loader2 className="w-6 h-6 text-crisp-400 animate-spin" />
+                      <div className="text-center">
+                        <p className="text-sm text-dark-200 font-medium">Crisping your text...</p>
+                        <p className="text-xs text-dark-500 mt-1">Removing AI patterns and matching your voice</p>
+                      </div>
+                    </motion.div>
+                  )}
 
-                    {loadingConfigs.map((config, i) => (
-                      <OutputCard
-                        key={`loading-${outputConfigKey(config)}`}
-                        configKey={outputConfigKey(config)}
-                        label={outputConfigLabel(config)}
-                        config={config}
-                        content=""
-                        index={outputs.length + i}
-                        isLoading
-                      />
-                    ))}
-                  </div>
+                  {/* Diff view */}
+                  {originalText && refinedText && (
+                    <DiffView
+                      original={originalText}
+                      refined={refinedText}
+                      sessionId={activeSessionId || undefined}
+                      onCalibrate={handleCalibrate}
+                    />
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

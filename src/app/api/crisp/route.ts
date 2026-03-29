@@ -1,21 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { buildOutputInstructions, outputConfigLabel, outputConfigKey } from "@/lib/output-types";
-import type { OutputConfig } from "@/lib/output-types";
-import { THOUGHT_DEPTH_PROMPT, buildRecastPrompt } from "@/lib/prompts";
+import { buildRecastPrompt } from "@/lib/prompts";
 import { getOrCreateUser, getPlanLimits } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const anthropic = new Anthropic({
+const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
-async function callClaude(params: Parameters<typeof callClaude>[0], retries = 3): Promise<Anthropic.Messages.Message> {
+async function callClaude(params: Anthropic.Messages.MessageCreateParamsNonStreaming, retries = 3): Promise<Anthropic.Messages.Message> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await callClaude(params);
+      return await client.messages.create(params);
     } catch (err: unknown) {
       const status = err instanceof Anthropic.APIError ? err.status : undefined;
       if (status === 429 && attempt < retries) {
@@ -28,31 +26,8 @@ async function callClaude(params: Parameters<typeof callClaude>[0], retries = 3)
   throw new Error("Max retries exceeded");
 }
 
-async function scoreThoughtDepth(inputText: string) {
-  const response = await callClaude({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 500,
-    messages: [
-      {
-        role: "user",
-        content: `${THOUGHT_DEPTH_PROMPT}\n\n=== CONTENT TO EVALUATE ===\n${inputText}`,
-      },
-    ],
-  });
-
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "";
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
   try {
-    // Auth + usage check
     const user = await getOrCreateUser();
     const limits = getPlanLimits(user.plan);
 
@@ -69,7 +44,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       input_text,
-      output_configs = [{ length: "medium", format: "default", humanify: false }] as OutputConfig[],
       voice_profile,
       audience,
       tone_formality,
@@ -92,35 +66,7 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // 1. Score thought depth
-          const thoughtDepth = await scoreThoughtDepth(input_text);
-          if (thoughtDepth) {
-            controller.enqueue(
-              encoder.encode(
-                `event: thought_depth\ndata: ${JSON.stringify(thoughtDepth)}\n\n`
-              )
-            );
-          }
-
-          const thoughtContext = thoughtDepth
-            ? `Score: ${thoughtDepth.total}/100\nGaps: ${Object.entries(thoughtDepth)
-                .filter(
-                  ([key, val]) =>
-                    key !== "total" &&
-                    key !== "summary" &&
-                    typeof val === "object" &&
-                    val !== null &&
-                    "flag" in val &&
-                    (val as { score: number; flag: string }).flag
-                )
-                .map(
-                  ([key, val]) =>
-                    `${key}: ${(val as { flag: string }).flag}`
-                )
-                .join(", ")}`
-            : undefined;
-
-          // 2. Generate summary + outputs concurrently
+          // Generate summary
           const summaryPromise = callClaude({
             model: "claude-haiku-4-5-20251001",
             max_tokens: 30,
@@ -138,59 +84,46 @@ export async function POST(request: Request) {
             return summary;
           }).catch(() => null);
 
-          const configs: OutputConfig[] = output_configs;
-          const collectedOutputs: { key: string; label: string; config: OutputConfig; content: string }[] = [];
+          // Generate single refined output
+          const prompt = buildRecastPrompt(
+            `Refine this text to be clearer, more direct, and free of AI patterns. Preserve the original meaning, structure, and approximate length. Do not change the format - if it's an email, keep it as an email. If it's bullet points, keep bullet points. Just make every sentence sound like a real human wrote it.`,
+            input_text,
+            undefined,
+            voiceJson,
+            audienceContext,
+            tone_formality
+          );
 
-          // Run outputs sequentially to avoid rate limits
-          const outputsPromise = (async () => {
-            for (const config of configs) {
-              const instructions = buildOutputInstructions(config);
-              const prompt = buildRecastPrompt(
-                instructions,
-                input_text,
-                thoughtContext,
-                voiceJson,
-                audienceContext,
-                tone_formality
-              );
+          const response = await callClaude({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 4096,
+            messages: [{ role: "user", content: prompt }],
+          });
 
-              const response = await callClaude({
-                model: "claude-haiku-4-5-20251001",
-                max_tokens: 2048,
-                messages: [{ role: "user", content: prompt }],
-              });
+          const refined = response.content[0].type === "text" ? response.content[0].text : "";
 
-              const content = response.content[0].type === "text" ? response.content[0].text : "";
-              const key = outputConfigKey(config);
-              const label = outputConfigLabel(config);
-              const output = { key, label, config, content };
-              collectedOutputs.push(output);
+          controller.enqueue(
+            encoder.encode(
+              `event: refined\ndata: ${JSON.stringify({ refined })}\n\n`
+            )
+          );
 
-              controller.enqueue(
-                encoder.encode(
-                  `event: output\ndata: ${JSON.stringify(output)}\n\n`
-                )
-              );
-            }
-          })();
+          const summary = await summaryPromise;
 
-          const [summary] = await Promise.all([summaryPromise, outputsPromise]);
-
-          // Persist session to DB
+          // Persist session
           await prisma.session.create({
             data: {
               userId: user.id,
               inputText: input_text,
               summary: summary || undefined,
-              thoughtDepth: thoughtDepth || undefined,
               audienceId: audience?.id,
               toneFormality: tone_formality,
               outputs: {
-                create: collectedOutputs.map((o) => ({
-                  outputConfig: JSON.parse(JSON.stringify(o.config)),
-                  outputLabel: o.label,
-                  content: o.content,
-                })),
+                create: [{
+                  outputConfig: { type: "refine" },
+                  outputLabel: "Crisped",
+                  content: refined,
+                }],
               },
             },
           });
