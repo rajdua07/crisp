@@ -12,8 +12,24 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
+async function callClaude(params: Parameters<typeof callClaude>[0], retries = 3): Promise<Anthropic.Messages.Message> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await callClaude(params);
+    } catch (err: unknown) {
+      const status = err instanceof Anthropic.APIError ? err.status : undefined;
+      if (status === 429 && attempt < retries) {
+        await new Promise((r) => setTimeout(r, 2000 * Math.pow(2, attempt)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 async function scoreThoughtDepth(inputText: string) {
-  const response = await anthropic.messages.create({
+  const response = await callClaude({
     model: "claude-sonnet-4-20250514",
     max_tokens: 500,
     messages: [
@@ -105,7 +121,7 @@ export async function POST(request: Request) {
             : undefined;
 
           // 2. Generate summary + outputs concurrently
-          const summaryPromise = anthropic.messages.create({
+          const summaryPromise = callClaude({
             model: "claude-sonnet-4-20250514",
             max_tokens: 30,
             messages: [{
@@ -125,37 +141,40 @@ export async function POST(request: Request) {
           const configs: OutputConfig[] = output_configs;
           const collectedOutputs: { key: string; label: string; config: OutputConfig; content: string }[] = [];
 
-          const outputPromises = configs.map(async (config: OutputConfig) => {
-            const instructions = buildOutputInstructions(config);
-            const prompt = buildRecastPrompt(
-              instructions,
-              input_text,
-              thoughtContext,
-              voiceJson,
-              audienceContext,
-              tone_formality
-            );
+          // Run outputs sequentially to avoid rate limits
+          const outputsPromise = (async () => {
+            for (const config of configs) {
+              const instructions = buildOutputInstructions(config);
+              const prompt = buildRecastPrompt(
+                instructions,
+                input_text,
+                thoughtContext,
+                voiceJson,
+                audienceContext,
+                tone_formality
+              );
 
-            const response = await anthropic.messages.create({
-              model: "claude-sonnet-4-20250514",
-              max_tokens: 2048,
-              messages: [{ role: "user", content: prompt }],
-            });
+              const response = await callClaude({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 2048,
+                messages: [{ role: "user", content: prompt }],
+              });
 
-            const content = response.content[0].type === "text" ? response.content[0].text : "";
-            const key = outputConfigKey(config);
-            const label = outputConfigLabel(config);
-            const output = { key, label, config, content };
-            collectedOutputs.push(output);
+              const content = response.content[0].type === "text" ? response.content[0].text : "";
+              const key = outputConfigKey(config);
+              const label = outputConfigLabel(config);
+              const output = { key, label, config, content };
+              collectedOutputs.push(output);
 
-            controller.enqueue(
-              encoder.encode(
-                `event: output\ndata: ${JSON.stringify(output)}\n\n`
-              )
-            );
-          });
+              controller.enqueue(
+                encoder.encode(
+                  `event: output\ndata: ${JSON.stringify(output)}\n\n`
+                )
+              );
+            }
+          })();
 
-          const [summary] = await Promise.all([summaryPromise, ...outputPromises]);
+          const [summary] = await Promise.all([summaryPromise, outputsPromise]);
 
           // Persist session to DB
           await prisma.session.create({

@@ -10,6 +10,22 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "",
 });
 
+async function callClaude(params: Parameters<typeof anthropic.messages.create>[0], retries = 3): Promise<Anthropic.Messages.Message> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await anthropic.messages.create(params);
+    } catch (err: unknown) {
+      const status = err instanceof Anthropic.APIError ? err.status : undefined;
+      if (status === 429 && attempt < retries) {
+        await new Promise((r) => setTimeout(r, 2000 * Math.pow(2, attempt)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
+
 /**
  * Demo endpoint - no auth required.
  * Generates 3 outputs (short/medium/long) from pasted text.
@@ -72,11 +88,11 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const outputPromises = DEMO_CONFIGS.map(async (config) => {
+          for (const config of DEMO_CONFIGS) {
             const instructions = buildOutputInstructions(config);
             const prompt = buildRecastPrompt(instructions, text);
 
-            const response = await anthropic.messages.create({
+            const response = await callClaude({
               model: "claude-sonnet-4-20250514",
               max_tokens: 2048,
               messages: [{ role: "user", content: prompt }],
@@ -97,9 +113,7 @@ export async function POST(request: Request) {
                 })}\n\n`
               )
             );
-          });
-
-          await Promise.all(outputPromises);
+          }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
