@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PasteZone } from "@/components/PasteZone";
-import { DiffView } from "@/components/DiffView";
+import { CrispComparison } from "@/components/CrispComparison";
 import { Sidebar } from "@/components/Sidebar";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import {
@@ -15,6 +15,12 @@ import { Sparkles, Menu, AlertCircle, Star, Loader2 } from "lucide-react";
 import { SafeUserButton } from "@/lib/clerk-helpers";
 import { v4 as uuidv4 } from "uuid";
 
+interface QualityScore {
+  original: number;
+  crisped: number;
+  dimensions: { name: string; original: number; crisped: number }[];
+}
+
 export default function AppPage() {
   const {
     user,
@@ -24,6 +30,9 @@ export default function AppPage() {
     toggleStarSession,
     voiceProfiles,
     activeVoiceProfileId,
+    selectedLength,
+    selectedFormat,
+    humanify,
     audiences,
     activeAudienceId,
     toneFormality,
@@ -35,6 +44,7 @@ export default function AppPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [originalText, setOriginalText] = useState<string | null>(null);
   const [refinedText, setRefinedText] = useState<string | null>(null);
+  const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -63,6 +73,7 @@ export default function AppPage() {
       setActiveSessionId(sessionId);
       setOriginalText(session.inputText);
       setRefinedText(session.outputs[0]?.userEdits || session.outputs[0]?.content || null);
+      setQualityScore(null);
     }
   };
 
@@ -92,6 +103,7 @@ export default function AppPage() {
       setIsLoading(true);
       setOriginalText(text);
       setRefinedText(null);
+      setQualityScore(null);
       setError(null);
 
       const voiceProfile = getActiveVoiceProfile();
@@ -105,6 +117,11 @@ export default function AppPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input_text: text,
+            output_config: {
+              length: selectedLength,
+              format: selectedFormat,
+              humanify,
+            },
             voice_profile: voiceProfile?.profileData || null,
             audience: activeAudience || null,
             tone_formality: toneFormality,
@@ -145,6 +162,8 @@ export default function AppPage() {
                   setRefinedText(data.refined);
                 } else if (eventType === "summary") {
                   collectedSummary = data.summary;
+                } else if (eventType === "quality_score") {
+                  setQualityScore(data);
                 } else if (eventType === "error") {
                   setError(data.error);
                 }
@@ -166,7 +185,7 @@ export default function AppPage() {
             thoughtDepthScore: null,
             outputs: [{
               id: uuidv4(),
-              outputConfig: { length: "medium", format: "default", humanify: false },
+              outputConfig: { length: selectedLength, format: selectedFormat, humanify },
               content: collectedRefined,
               copied: false,
             }],
@@ -185,7 +204,7 @@ export default function AppPage() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, limits, voiceProfiles, activeVoiceProfileId, audiences, activeAudienceId, toneFormality]
+    [user, limits, selectedLength, selectedFormat, humanify, voiceProfiles, activeVoiceProfileId, audiences, activeAudienceId, toneFormality]
   );
 
   const handleCalibrate = useCallback(
@@ -210,6 +229,7 @@ export default function AppPage() {
   const handleNewCrisp = () => {
     setOriginalText(null);
     setRefinedText(null);
+    setQualityScore(null);
     setError(null);
     setActiveSessionId(null);
     setInputText("");
@@ -294,7 +314,7 @@ export default function AppPage() {
 
         {/* Main content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+          <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
             <AnimatePresence mode="wait">
               {!hasResults ? (
                 <motion.div
@@ -366,16 +386,17 @@ export default function AppPage() {
                       <Loader2 className="w-6 h-6 text-crisp-400 animate-spin" />
                       <div className="text-center">
                         <p className="text-sm text-dark-200 font-medium">Crisping your text...</p>
-                        <p className="text-xs text-dark-500 mt-1">Removing AI patterns and matching your voice</p>
+                        <p className="text-xs text-dark-500 mt-1">Scoring, refining, and matching your voice</p>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Diff view */}
+                  {/* Side by side comparison */}
                   {originalText && refinedText && (
-                    <DiffView
+                    <CrispComparison
                       original={originalText}
                       refined={refinedText}
+                      qualityScore={qualityScore}
                       sessionId={activeSessionId || undefined}
                       onCalibrate={handleCalibrate}
                     />

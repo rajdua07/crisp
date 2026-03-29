@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { OutputLength, OutputFormat } from "@/lib/output-types";
 
 // ─── Audience ───
 export interface Audience {
@@ -180,6 +181,14 @@ interface AppState {
   toneFormality: number;
   setToneFormality: (value: number) => void;
 
+  // Output settings
+  selectedLength: OutputLength;
+  setSelectedLength: (length: OutputLength) => void;
+  selectedFormat: OutputFormat;
+  setSelectedFormat: (format: OutputFormat) => void;
+  humanify: boolean;
+  setHumanify: (value: boolean) => void;
+
   // Document Branding
   documentBranding: DocumentBranding;
   setDocumentBranding: (updates: Partial<DocumentBranding>) => void;
@@ -314,6 +323,13 @@ export const useAppStore = create<AppState>()(
       toneFormality: 0.5,
       setToneFormality: (value) => set({ toneFormality: value }),
 
+      // ─── Output settings ───
+      selectedLength: "medium" as OutputLength,
+      setSelectedLength: (length) => set({ selectedLength: length }),
+      selectedFormat: "default" as OutputFormat,
+      setSelectedFormat: (format) => set({ selectedFormat: format }),
+      humanify: false,
+      setHumanify: (value) => set({ humanify: value }),
     }),
     {
       name: "crisp-storage",
