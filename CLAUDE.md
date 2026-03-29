@@ -9,7 +9,7 @@ The core insight: AI gives you the substance but in the wrong shape. Crisp resha
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router), React 18, Tailwind CSS
-- **AI**: Anthropic Claude API (claude-sonnet-4-20250514) via @anthropic-ai/sdk
+- **AI**: Anthropic Claude API (claude-haiku-4-5-20251001) via @anthropic-ai/sdk
 - **Database**: PostgreSQL (Supabase) via Prisma ORM
 - **Auth**: Clerk
 - **Payments**: Stripe

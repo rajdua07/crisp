@@ -30,7 +30,7 @@ async function callClaude(params: Parameters<typeof callClaude>[0], retries = 3)
 
 async function scoreThoughtDepth(inputText: string) {
   const response = await callClaude({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 500,
     messages: [
       {
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
 
           // 2. Generate summary + outputs concurrently
           const summaryPromise = callClaude({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-haiku-4-5-20251001",
             max_tokens: 30,
             messages: [{
               role: "user",
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
               );
 
               const response = await callClaude({
-                model: "claude-sonnet-4-20250514",
+                model: "claude-haiku-4-5-20251001",
                 max_tokens: 2048,
                 messages: [{ role: "user", content: prompt }],
               });
